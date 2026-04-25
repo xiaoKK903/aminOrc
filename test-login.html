@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Login Test</h1>
+    <form id="loginForm">
+        <label>Email:</label>
+        <input type="email" id="email" value="admin@jitword.com"><br><br>
+        <label>Password:</label>
+        <input type="password" id="password" value="admin111"><br><br>
+        <button type="submit">Login</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await axios.post('http://localhost:5173/api/auth/login', {
+                    email: email,
+                    password: password
+                });
+                document.getElementById('result').innerHTML = `
+                    <h2>Login Success!</h2>
+                    <p>User: ${JSON.stringify(response.data.user)}</p>
+                    <p>Token: ${response.data.token}</p>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h2>Login Failed!</h2>
+                    <p>Error: ${error.response ? error.response.data.message : error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
