@@ -310,6 +310,9 @@
     .dashboard-card .icon.permissions {
       background: linear-gradient(135deg, #f759ab 0%, #eb2f96 100%);
     }
+    .dashboard-card .icon.credentials {
+      background: linear-gradient(135deg, #722ed1 0%, #531dab 100%);
+    }
     .dashboard-card h3 {
       font-size: 18px;
       font-weight: 600;
@@ -658,6 +661,13 @@
             <span class="icon">🛡️</span>
             <span class="text">权限管理</span>
           </div>
+          
+          <div class="menu-divider"></div>
+          
+          <div class="menu-item" @click="openCredentialPools">
+            <span class="icon">🔑</span>
+            <span class="text">凭证池</span>
+          </div>
         </div>
       </div>
 
@@ -724,6 +734,11 @@
               <div class="icon permissions">🛡️</div>
               <h3>权限管理</h3>
               <p>配置系统权限</p>
+            </div>
+            <div class="dashboard-card" @click="openCredentialPools">
+              <div class="icon credentials">🔑</div>
+              <h3>凭证池</h3>
+              <p>管理第三方平台账号密钥</p>
             </div>
           </div>
         </div>
@@ -1445,6 +1460,10 @@
           checkAuth();
         });
 
+        function openCredentialPools() {
+          window.location.href = '/credential-pools.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1487,7 +1506,8 @@
           openPermModal,
           deleteRole,
           deleteDept,
-          deletePerm
+          deletePerm,
+          openCredentialPools
         };
       }
     }).mount('#app');
