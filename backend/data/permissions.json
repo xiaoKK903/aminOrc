@@ -1,1 +1,362 @@
-[]
+[
+  {
+    "id": "fa82b8f9-8fa8-40a3-a1e7-c94c0291e6db",
+    "name": "用户查看",
+    "code": "user:read",
+    "resource": "user",
+    "action": "read",
+    "description": "查看用户的权限",
+    "createdAt": "2026-04-25T02:44:08.554Z"
+  },
+  {
+    "id": "1391634e-42a4-4060-864a-52d057bb3868",
+    "name": "用户创建",
+    "code": "user:create",
+    "resource": "user",
+    "action": "create",
+    "description": "创建用户的权限",
+    "createdAt": "2026-04-25T02:44:08.556Z"
+  },
+  {
+    "id": "1a803649-b5da-40a5-bf60-87e109cb8223",
+    "name": "用户编辑",
+    "code": "user:update",
+    "resource": "user",
+    "action": "update",
+    "description": "编辑用户的权限",
+    "createdAt": "2026-04-25T02:44:08.557Z"
+  },
+  {
+    "id": "28dc7224-cc52-4fd4-969c-b92d4f1884dd",
+    "name": "用户删除",
+    "code": "user:delete",
+    "resource": "user",
+    "action": "delete",
+    "description": "删除用户的权限",
+    "createdAt": "2026-04-25T02:44:08.558Z"
+  },
+  {
+    "id": "a9ef5140-620c-4b05-bac0-32efeb7bcd4c",
+    "name": "用户导出",
+    "code": "user:export",
+    "resource": "user",
+    "action": "export",
+    "description": "导出用户的权限",
+    "createdAt": "2026-04-25T02:44:08.559Z"
+  },
+  {
+    "id": "840c1384-eedc-4a09-ba40-dea1d281a39b",
+    "name": "用户导入",
+    "code": "user:import",
+    "resource": "user",
+    "action": "import",
+    "description": "导入用户的权限",
+    "createdAt": "2026-04-25T02:44:08.560Z"
+  },
+  {
+    "id": "bbebf8cd-0a55-444c-a68f-550410218a7c",
+    "name": "用户审批",
+    "code": "user:approve",
+    "resource": "user",
+    "action": "approve",
+    "description": "审批用户的权限",
+    "createdAt": "2026-04-25T02:44:08.562Z"
+  },
+  {
+    "id": "e6047240-2add-42f4-98b0-baa7378dd76c",
+    "name": "用户管理",
+    "code": "user:manage",
+    "resource": "user",
+    "action": "manage",
+    "description": "管理用户的权限",
+    "createdAt": "2026-04-25T02:44:08.563Z"
+  },
+  {
+    "id": "a5e769d9-aca7-4d54-b86d-94e50b226f13",
+    "name": "角色查看",
+    "code": "role:read",
+    "resource": "role",
+    "action": "read",
+    "description": "查看角色的权限",
+    "createdAt": "2026-04-25T02:44:08.564Z"
+  },
+  {
+    "id": "7e9f6b2b-6f22-4d5d-baf5-2ded55ed8ba0",
+    "name": "角色创建",
+    "code": "role:create",
+    "resource": "role",
+    "action": "create",
+    "description": "创建角色的权限",
+    "createdAt": "2026-04-25T02:44:08.565Z"
+  },
+  {
+    "id": "9b0778fd-d371-4a3e-8455-1485fe9fbbce",
+    "name": "角色编辑",
+    "code": "role:update",
+    "resource": "role",
+    "action": "update",
+    "description": "编辑角色的权限",
+    "createdAt": "2026-04-25T02:44:08.566Z"
+  },
+  {
+    "id": "94877920-49da-46c6-a32b-713b62628e5e",
+    "name": "角色删除",
+    "code": "role:delete",
+    "resource": "role",
+    "action": "delete",
+    "description": "删除角色的权限",
+    "createdAt": "2026-04-25T02:44:08.568Z"
+  },
+  {
+    "id": "7022744d-27ff-497b-948e-3d3ca9d3021b",
+    "name": "角色导出",
+    "code": "role:export",
+    "resource": "role",
+    "action": "export",
+    "description": "导出角色的权限",
+    "createdAt": "2026-04-25T02:44:08.569Z"
+  },
+  {
+    "id": "c45e6a69-6155-40c6-806b-493582594ea7",
+    "name": "角色导入",
+    "code": "role:import",
+    "resource": "role",
+    "action": "import",
+    "description": "导入角色的权限",
+    "createdAt": "2026-04-25T02:44:08.570Z"
+  },
+  {
+    "id": "fee80981-c99e-4e7b-baf4-cc5b0662f5e1",
+    "name": "角色审批",
+    "code": "role:approve",
+    "resource": "role",
+    "action": "approve",
+    "description": "审批角色的权限",
+    "createdAt": "2026-04-25T02:44:08.571Z"
+  },
+  {
+    "id": "34278788-21d4-484a-b587-98d39990e588",
+    "name": "角色管理",
+    "code": "role:manage",
+    "resource": "role",
+    "action": "manage",
+    "description": "管理角色的权限",
+    "createdAt": "2026-04-25T02:44:08.573Z"
+  },
+  {
+    "id": "6a01b7c3-3576-4eb3-bd52-597891e93caf",
+    "name": "部门查看",
+    "code": "department:read",
+    "resource": "department",
+    "action": "read",
+    "description": "查看部门的权限",
+    "createdAt": "2026-04-25T02:44:08.574Z"
+  },
+  {
+    "id": "f0476b80-dcca-4530-a5a5-85746106d771",
+    "name": "部门创建",
+    "code": "department:create",
+    "resource": "department",
+    "action": "create",
+    "description": "创建部门的权限",
+    "createdAt": "2026-04-25T02:44:08.575Z"
+  },
+  {
+    "id": "3f593d39-cd3f-4866-b197-1e53c6ebe302",
+    "name": "部门编辑",
+    "code": "department:update",
+    "resource": "department",
+    "action": "update",
+    "description": "编辑部门的权限",
+    "createdAt": "2026-04-25T02:44:08.576Z"
+  },
+  {
+    "id": "1a61f700-ef9b-4773-854b-240424205f84",
+    "name": "部门删除",
+    "code": "department:delete",
+    "resource": "department",
+    "action": "delete",
+    "description": "删除部门的权限",
+    "createdAt": "2026-04-25T02:44:08.577Z"
+  },
+  {
+    "id": "43d4f693-2228-4170-a22a-c52083369c4a",
+    "name": "部门导出",
+    "code": "department:export",
+    "resource": "department",
+    "action": "export",
+    "description": "导出部门的权限",
+    "createdAt": "2026-04-25T02:44:08.578Z"
+  },
+  {
+    "id": "90d7067b-b5a4-4406-b034-18688e348111",
+    "name": "部门导入",
+    "code": "department:import",
+    "resource": "department",
+    "action": "import",
+    "description": "导入部门的权限",
+    "createdAt": "2026-04-25T02:44:08.580Z"
+  },
+  {
+    "id": "f232679d-efce-460a-b53f-fbd50a80e922",
+    "name": "部门审批",
+    "code": "department:approve",
+    "resource": "department",
+    "action": "approve",
+    "description": "审批部门的权限",
+    "createdAt": "2026-04-25T02:44:08.581Z"
+  },
+  {
+    "id": "e0e61315-40f8-4ea5-bdc0-dde9796ddbd0",
+    "name": "部门管理",
+    "code": "department:manage",
+    "resource": "department",
+    "action": "manage",
+    "description": "管理部门的权限",
+    "createdAt": "2026-04-25T02:44:08.582Z"
+  },
+  {
+    "id": "84c502c3-b7d1-4812-8211-04165e29016c",
+    "name": "权限查看",
+    "code": "permission:read",
+    "resource": "permission",
+    "action": "read",
+    "description": "查看权限的权限",
+    "createdAt": "2026-04-25T02:44:08.583Z"
+  },
+  {
+    "id": "86e9f808-d9f6-4201-b1f0-0abf12f8fb45",
+    "name": "权限创建",
+    "code": "permission:create",
+    "resource": "permission",
+    "action": "create",
+    "description": "创建权限的权限",
+    "createdAt": "2026-04-25T02:44:08.585Z"
+  },
+  {
+    "id": "0393a53d-54ce-4429-bb1f-ac3a8125e9aa",
+    "name": "权限编辑",
+    "code": "permission:update",
+    "resource": "permission",
+    "action": "update",
+    "description": "编辑权限的权限",
+    "createdAt": "2026-04-25T02:44:08.586Z"
+  },
+  {
+    "id": "dbe24b69-c041-4f6b-8c0f-6bd05215a338",
+    "name": "权限删除",
+    "code": "permission:delete",
+    "resource": "permission",
+    "action": "delete",
+    "description": "删除权限的权限",
+    "createdAt": "2026-04-25T02:44:08.587Z"
+  },
+  {
+    "id": "973e8311-c1d7-44c6-8601-28b793c5d7aa",
+    "name": "权限导出",
+    "code": "permission:export",
+    "resource": "permission",
+    "action": "export",
+    "description": "导出权限的权限",
+    "createdAt": "2026-04-25T02:44:08.589Z"
+  },
+  {
+    "id": "65c4b596-2c50-4c7d-ad14-8bf5432f7dda",
+    "name": "权限导入",
+    "code": "permission:import",
+    "resource": "permission",
+    "action": "import",
+    "description": "导入权限的权限",
+    "createdAt": "2026-04-25T02:44:08.590Z"
+  },
+  {
+    "id": "3d238623-0959-404b-88aa-90b67843de25",
+    "name": "权限审批",
+    "code": "permission:approve",
+    "resource": "permission",
+    "action": "approve",
+    "description": "审批权限的权限",
+    "createdAt": "2026-04-25T02:44:08.591Z"
+  },
+  {
+    "id": "f1ef3ab4-2be1-4b6d-9f9e-bb7b7ed03fab",
+    "name": "权限管理",
+    "code": "permission:manage",
+    "resource": "permission",
+    "action": "manage",
+    "description": "管理权限的权限",
+    "createdAt": "2026-04-25T02:44:08.592Z"
+  },
+  {
+    "id": "eddd61cd-9af9-4fca-9d9c-e15352f42518",
+    "name": "统计报表查看",
+    "code": "statistics:read",
+    "resource": "statistics",
+    "action": "read",
+    "description": "查看统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.594Z"
+  },
+  {
+    "id": "2e2d2a48-2cb0-401b-bc34-8790806a241b",
+    "name": "统计报表创建",
+    "code": "statistics:create",
+    "resource": "statistics",
+    "action": "create",
+    "description": "创建统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.595Z"
+  },
+  {
+    "id": "2fbe47ee-cbc4-40ed-9d4f-e0ddd5a775a6",
+    "name": "统计报表编辑",
+    "code": "statistics:update",
+    "resource": "statistics",
+    "action": "update",
+    "description": "编辑统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.596Z"
+  },
+  {
+    "id": "75303c7b-5e5a-4710-84f9-eab4791db4a5",
+    "name": "统计报表删除",
+    "code": "statistics:delete",
+    "resource": "statistics",
+    "action": "delete",
+    "description": "删除统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.597Z"
+  },
+  {
+    "id": "798b5524-a3d1-4518-8b8c-2512c9cc4d06",
+    "name": "统计报表导出",
+    "code": "statistics:export",
+    "resource": "statistics",
+    "action": "export",
+    "description": "导出统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.599Z"
+  },
+  {
+    "id": "b84a8d39-deb4-4253-ac4a-4d3960693e7e",
+    "name": "统计报表导入",
+    "code": "statistics:import",
+    "resource": "statistics",
+    "action": "import",
+    "description": "导入统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.600Z"
+  },
+  {
+    "id": "2f15172c-8c30-4dad-b7a9-4c31030a5865",
+    "name": "统计报表审批",
+    "code": "statistics:approve",
+    "resource": "statistics",
+    "action": "approve",
+    "description": "审批统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.601Z"
+  },
+  {
+    "id": "44d789c5-ad50-4359-a210-b8c3d7b4d5f6",
+    "name": "统计报表管理",
+    "code": "statistics:manage",
+    "resource": "statistics",
+    "action": "manage",
+    "description": "管理统计报表的权限",
+    "createdAt": "2026-04-25T02:44:08.603Z"
+  }
+]

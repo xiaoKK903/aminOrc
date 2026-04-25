@@ -9,5 +9,61 @@
     "isAdmin": true,
     "createdAt": "2025-11-25T06:51:53.596Z",
     "updatedAt": "2025-11-25T06:51:53.597Z"
+  },
+  {
+    "id": "cad8eb52-33cf-4ffb-a8b9-0f23ac1d74c5",
+    "email": "admin@nocrm.com",
+    "password": "$2b$10$JWjgBfdohSv6HCvGzQWSV.oivvmom.AxDBBkgobi370TGDJd/.2yi",
+    "name": "超级管理员",
+    "roleId": "2a63b080-11d7-44a5-889b-ddd27f50ec5c",
+    "isAdmin": true,
+    "role": "sales",
+    "status": "active",
+    "createdAt": "2026-04-25T02:44:08.758Z",
+    "updatedAt": "2026-04-25T02:44:08.758Z"
+  },
+  {
+    "id": "83218ebe-c0ea-4d0a-b0d2-c8af98e66064",
+    "email": "test@example.com",
+    "password": "$2b$10$QOK9CygWvvi/QvnU0bvfR.0Dz7a6SL93YszYqG4Rz.KYRGYUy7rqO",
+    "name": "????",
+    "role": "sales",
+    "status": "active",
+    "isAdmin": false,
+    "createdAt": "2026-04-25T02:44:48.266Z",
+    "updatedAt": "2026-04-25T02:44:48.266Z"
+  },
+  {
+    "id": "051d8890-6542-4466-a711-cafa9d6dcfae",
+    "email": "newuser@test.com",
+    "password": "$2b$10$V/gXOWRkBeh1//9RR7d6n.aU6RpmVU4Pmp5bngYza0G/sQjy4qMl2",
+    "name": "测试用户",
+    "role": "admin",
+    "status": "active",
+    "isAdmin": true,
+    "createdAt": "2026-04-25T03:49:51.783Z",
+    "updatedAt": "2026-04-25T03:49:51.783Z"
+  },
+  {
+    "id": "bbea25f9-4215-4abb-8650-a351dc4ca018",
+    "email": "test@flowmix.com",
+    "password": "$2b$10$AQVi8MHgrKgTdcoLanq.U.CO.g0a19vJBg2xgb1H/NfwV091FibqW",
+    "name": "测试用户",
+    "role": "admin",
+    "status": "active",
+    "isAdmin": true,
+    "createdAt": "2026-04-25T03:50:18.078Z",
+    "updatedAt": "2026-04-25T03:50:18.078Z"
+  },
+  {
+    "id": "ce9e32a9-09c3-4555-96c6-671ff94be14f",
+    "email": "aaawhz@e11.com",
+    "password": "$2b$10$PZ.bLlAJI09BtpET4U5rBOyniQHTMh.5xKhiDYAvVfqa7Qwt5iRFK",
+    "name": "测试用户",
+    "role": "admin",
+    "status": "active",
+    "isAdmin": true,
+    "createdAt": "2026-04-25T05:41:59.906Z",
+    "updatedAt": "2026-04-25T05:41:59.906Z"
   }
 ]

@@ -46,7 +46,7 @@ exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const json_storage_service_1 = require("../common/json-storage.service");
 const uuid_1 = require("uuid");
-const bcrypt = __importStar(require("bcrypt"));
+const bcrypt = __importStar(require("bcryptjs"));
 let UsersService = class UsersService {
     storageService;
     constructor(storageService) {
