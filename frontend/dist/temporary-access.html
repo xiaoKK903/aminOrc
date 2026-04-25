@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>临时授权 - NO-CRM</title>
+  <link rel="stylesheet" href="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f5f7fa;
+    }
+    .header {
+      background: linear-gradient(135deg, #faad14 0%, #ff4d4f 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .header .back-link {
+      color: white;
+      text-decoration: none;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    .header .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .stats-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 20px;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .stat-item.total {
+      background: #f0f2ff;
+    }
+    .stat-item.active-now {
+      background: #e6fffb;
+      border: 2px solid #13c2c2;
+    }
+    .stat-item.active {
+      background: #e6f7ff;
+    }
+    .stat-item.expiring {
+      background: #fffbe6;
+    }
+    .stat-item.expired {
+      background: #fff1f0;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .stat-item.total .stat-value { color: #667eea; }
+    .stat-item.active-now .stat-value { color: #13c2c2; }
+    .stat-item.active .stat-value { color: #1890ff; }
+    .stat-item.expiring .stat-value { color: #faad14; }
+    .stat-item.expired .stat-value { color: #f5222d; }
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .filter-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .filter-group select,
+    .filter-group input {
+      padding: 8px 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: #faad14;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #ec9a00;
+    }
+    .btn-danger {
+      background: #f5222d;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #d91019;
+    }
+    .btn-default {
+      background: white;
+      border: 1px solid #d9d9d9;
+      color: #333;
+    }
+    .btn-default:hover {
+      border-color: #faad14;
+      color: #faad14;
+    }
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead {
+      background: #fafafa;
+    }
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    th {
+      font-weight: 600;
+      color: #333;
+    }
+    tr:hover {
+      background: #fafafa;
+    }
+    tr.row-expired {
+      background: #fff1f0;
+      opacity: 0.7;
+    }
+    tr.row-expired:hover {
+      background: #ffccc7;
+    }
+    tr.row-expiring {
+      background: #fffbe6;
+    }
+    tr.row-expiring:hover {
+      background: #ffe58f;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-pending {
+      background: #f5f5f5;
+      color: #999;
+    }
+    .status-active {
+      background: #e6fffb;
+      color: #13c2c2;
+    }
+    .status-expiring {
+      background: #fffbe6;
+      color: #faad14;
+    }
+    .status-expired {
+      background: #fff1f0;
+      color: #f5222d;
+    }
+    .action-group {
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    .action-btn.view {
+      color: #1890ff;
+    }
+    .action-btn.view:hover {
+      background: #e6f7ff;
+    }
+    .action-btn.delete {
+      color: #f5222d;
+    }
+    .action-btn.delete:hover {
+      background: #fff1f0;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: white;
+      border-radius: 8px;
+      width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+    .modal-body {
+      padding: 24px;
+    }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #333;
+    }
+    .form-group label .required {
+      color: #f5222d;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #faad14;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .pagination {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      padding: 16px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .pagination button {
+      padding: 6px 12px;
+      border: 1px solid #d9d9d9;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pagination button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    .pagination button.active {
+      background: #faad14;
+      color: white;
+      border-color: #faad14;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      border-radius: 4px;
+      color: white;
+      font-size: 14px;
+      z-index: 2000;
+      display: none;
+    }
+    .toast.active {
+      display: block;
+    }
+    .toast.success {
+      background: #52c41a;
+    }
+    .toast.error {
+      background: #f5222d;
+    }
+    .breadcrumb {
+      padding: 12px 0;
+      color: #666;
+      font-size: 14px;
+    }
+    .breadcrumb a {
+      color: #667eea;
+      text-decoration: none;
+    }
+    .breadcrumb span {
+      margin: 0 8px;
+    }
+    .detail-item {
+      margin-bottom: 16px;
+    }
+    .detail-item label {
+      display: block;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .detail-item .value {
+      font-size: 15px;
+      color: #333;
+      word-break: break-all;
+    }
+    .highlight-active {
+      background: #e6fffb;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border-left: 4px solid #13c2c2;
+    }
+    .highlight-active h4 {
+      color: #13c2c2;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⏰ 临时授权管理</h1>
+    <a href="/" class="back-link">← 返回主系统</a>
+  </div>
+
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">首页</a>
+      <span>/</span>
+      <span>临时授权</span>
+    </div>
+
+    <div class="stats-card" id="statsCard" style="display: none;">
+      <div class="highlight-active" id="activeNowHighlight" style="display: none;">
+        <h4>🔥 当前生效中的临时权限</h4>
+        <p style="font-size: 24px; font-weight: 700; color: #13c2c2;" id="activeNowCount">0 条</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item total">
+          <div class="stat-value" id="totalCount">0</div>
+          <div class="stat-label">总授权数</div>
+        </div>
+        <div class="stat-item active-now">
+          <div class="stat-value" id="activeNowStat">0</div>
+          <div class="stat-label">当前生效</div>
+        </div>
+        <div class="stat-item active">
+          <div class="stat-value" id="activeCount">0</div>
+          <div class="stat-label">正常生效</div>
+        </div>
+        <div class="stat-item expiring">
+          <div class="stat-value" id="expiringCount">0</div>
+          <div class="stat-label">即将过期</div>
+        </div>
+        <div class="stat-item expired">
+          <div class="stat-value" id="expiredCount">0</div>
+          <div class="stat-label">已过期</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="filter-group">
+        <select id="statusFilter">
+          <option value="">全部状态</option>
+          <option value="active-now">当前生效</option>
+          <option value="active">正常生效</option>
+          <option value="expiring">即将过期</option>
+          <option value="expired">已过期</option>
+          <option value="pending">未开始</option>
+        </select>
+        <input type="text" id="searchInput" placeholder="搜索访客姓名...">
+        <button class="btn btn-default" id="searchBtn">搜索</button>
+        <button class="btn btn-default" id="resetBtn">重置</button>
+      </div>
+      <button class="btn btn-primary" id="addBtn">+ 新增授权</button>
+    </div>
+
+    <div class="table-container">
+      <div class="loading" id="loading">加载中...</div>
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <div class="icon">📋</div>
+        <p>暂无临时授权记录</p>
+        <p style="margin-top: 8px; font-size: 12px;">点击"新增授权"开始添加</p>
+      </div>
+      <table id="dataTable" style="display: none;">
+        <thead>
+          <tr>
+            <th style="width: 100px;">状态</th>
+            <th style="width: 120px;">访客姓名</th>
+            <th style="width: 200px;">授权页面</th>
+            <th style="width: 200px;">有效期</th>
+            <th style="width: 100px;">审批人</th>
+            <th style="width: 100px;">创建人</th>
+            <th style="width: 140px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="pagination" id="pagination" style="display: none;">
+        <button id="prevBtn">上一页</button>
+        <span id="pageInfo">第 1 页</span>
+        <button id="nextBtn">下一页</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="formModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">新增临时授权</h2>
+        <button class="modal-close" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="accessForm">
+          <div class="form-group">
+            <label><span class="required">*</span> 访客姓名</label>
+            <input type="text" id="visitorName" name="visitorName" placeholder="如：张三（外包）" required>
+          </div>
+          <div class="form-group">
+            <label><span class="required">*</span> 授权页面</label>
+            <textarea id="permissionPages" name="permissionPages" placeholder="描述能看哪些页面，如：数据大屏、用户列表（只读）、订单导出" required></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label><span class="required">*</span> 开始日期</label>
+              <input type="date" id="startDate" name="startDate" required>
+            </div>
+            <div class="form-group">
+              <label><span class="required">*</span> 结束日期</label>
+              <input type="date" id="endDate" name="endDate" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>审批人</label>
+            <input type="text" id="approvedBy" name="approvedBy" placeholder="如：张经理">
+          </div>
+          <div class="form-group">
+            <label>备注</label>
+            <textarea id="remarks" name="remarks" placeholder="其他备注信息"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" id="cancelBtn">取消</button>
+        <button class="btn btn-primary" id="saveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>授权详情</h2>
+        <button class="modal-close" id="closeDetailModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-item">
+          <label>访客姓名</label>
+          <div class="value" id="detailVisitorName">-</div>
+        </div>
+        <div class="detail-item">
+          <label>授权页面</label>
+          <div class="value" id="detailPermissionPages">-</div>
+        </div>
+        <div class="detail-item">
+          <label>有效期</label>
+          <div class="value" id="detailDateRange">-</div>
+        </div>
+        <div class="detail-item">
+          <label>状态</label>
+          <div class="value" id="detailStatus">-</div>
+        </div>
+        <div class="detail-item">
+          <label>审批人</label>
+          <div class="value" id="detailApprovedBy">-</div>
+        </div>
+        <div class="detail-item">
+          <label>创建人</label>
+          <div class="value" id="detailCreatedBy">-</div>
+        </div>
+        <div class="detail-item">
+          <label>创建时间</label>
+          <div class="value" id="detailCreatedAt">-</div>
+        </div>
+        <div class="detail-item">
+          <label>备注</label>
+          <div class="value" id="detailRemarks">-</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" id="closeDetailBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>确认删除</h2>
+        <button class="modal-close" id="closeDeleteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>确定要删除此临时授权记录吗？</p>
+        <p style="margin-top: 8px; font-size: 12px; color: #666;">提示：续期请新增一条记录，不要删除原记录。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-default" id="cancelDeleteBtn">取消</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = '/api/temporary-access';
+    const AUTH_BASE = '/api/auth';
+    
+    let token = localStorage.getItem('token');
+    let currentPage = 1;
+    let pageSize = 10;
+    let currentEditId = null;
+    let currentDeleteId = null;
+
+    async function request(url, options = {}) {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+      
+      if (response.status === 401) {
+        showToast('登录已过期，请先登录', 'error');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+        throw new Error('Unauthorized');
+      }
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || '请求失败');
+      }
+      return data;
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} active`;
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+
+    function getStatusClass(status) {
+      switch (status) {
+        case 'pending': return 'status-pending';
+        case 'active': return 'status-active';
+        case 'expiring': return 'status-expiring';
+        case 'expired': return 'status-expired';
+        default: return 'status-pending';
+      }
+    }
+
+    function getStatusText(status) {
+      switch (status) {
+        case 'pending': return '未开始';
+        case 'active': return '正常';
+        case 'expiring': return '即将过期';
+        case 'expired': return '已过期';
+        default: return '未知';
+      }
+    }
+
+    function getRowClass(status) {
+      switch (status) {
+        case 'expired': return 'row-expired';
+        case 'expiring': return 'row-expiring';
+        default: return '';
+      }
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      return dateStr;
+    }
+
+    async function loadStats() {
+      try {
+        const stats = await request(`${API_BASE}/statistics/overview`);
+        document.getElementById('totalCount').textContent = stats.total || 0;
+        document.getElementById('activeNowStat').textContent = stats.activeNow || 0;
+        document.getElementById('activeCount').textContent = stats.active || 0;
+        document.getElementById('expiringCount').textContent = stats.expiring || 0;
+        document.getElementById('expiredCount').textContent = stats.expired || 0;
+        document.getElementById('statsCard').style.display = 'block';
+
+        const activeNowHighlight = document.getElementById('activeNowHighlight');
+        const activeNowCount = stats.activeNow || 0;
+        if (activeNowCount > 0) {
+          document.getElementById('activeNowCount').textContent = activeNowCount + ' 条';
+          activeNowHighlight.style.display = 'block';
+        } else {
+          activeNowHighlight.style.display = 'none';
+        }
+      } catch (e) {
+        console.error('加载统计失败:', e);
+      }
+    }
+
+    async function loadData() {
+      const loading = document.getElementById('loading');
+      const emptyState = document.getElementById('emptyState');
+      const dataTable = document.getElementById('dataTable');
+      const pagination = document.getElementById('pagination');
+      
+      loading.style.display = 'block';
+      emptyState.style.display = 'none';
+      dataTable.style.display = 'none';
+      pagination.style.display = 'none';
+
+      try {
+        const statusFilter = document.getElementById('statusFilter').value;
+        const searchValue = document.getElementById('searchInput').value.trim();
+
+        let url = `${API_BASE}?page=${currentPage}&pageSize=${pageSize}`;
+        if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
+        if (searchValue) url += `&visitorName=${encodeURIComponent(searchValue)}`;
+
+        const result = await request(url);
+        let items = result.items || result.data || result || [];
+
+        loading.style.display = 'none';
+
+        if (items.length === 0) {
+          emptyState.style.display = 'block';
+          return;
+        }
+
+        dataTable.style.display = 'table';
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = '';
+
+        items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.className = getRowClass(item.status);
+          tr.innerHTML = `
+            <td><span class="status-badge ${getStatusClass(item.status)}">${getStatusText(item.status)}</span></td>
+            <td>${item.visitorName || '-'}</td>
+            <td>${item.permissionPages || '-'}</td>
+            <td>${formatDate(item.startDate)} ~ ${formatDate(item.endDate)}</td>
+            <td>${item.approvedBy || '-'}</td>
+            <td>${item.createdByName || '-'}</td>
+            <td>
+              <div class="action-group">
+                <button class="action-btn view" data-id="${item.id}">👁 详情</button>
+                <button class="action-btn delete" data-id="${item.id}">🗑 删除</button>
+              </div>
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+
+        const total = result.total || items.length;
+        const totalPages = Math.ceil(total / pageSize);
+        document.getElementById('pageInfo').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页 (${total} 条)`;
+        document.getElementById('prevBtn').disabled = currentPage <= 1;
+        document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+        
+        if (totalPages > 1) {
+          pagination.style.display = 'flex';
+        }
+
+        bindTableActions();
+      } catch (e) {
+        loading.style.display = 'none';
+        console.error('加载数据失败:', e);
+        showToast('加载数据失败: ' + e.message, 'error');
+      }
+    }
+
+    function bindTableActions() {
+      document.querySelectorAll('.action-btn.view').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          try {
+            const detail = await request(`${API_BASE}/${id}`);
+            document.getElementById('detailVisitorName').textContent = detail.visitorName || '-';
+            document.getElementById('detailPermissionPages').textContent = detail.permissionPages || '-';
+            document.getElementById('detailDateRange').textContent = `${formatDate(detail.startDate)} ~ ${formatDate(detail.endDate)}`;
+            document.getElementById('detailStatus').innerHTML = `<span class="status-badge ${getStatusClass(detail.status)}">${getStatusText(detail.status)}</span>`;
+            document.getElementById('detailApprovedBy').textContent = detail.approvedBy || '-';
+            document.getElementById('detailCreatedBy').textContent = detail.createdByName || '-';
+            document.getElementById('detailCreatedAt').textContent = detail.createdAt ? new Date(detail.createdAt).toLocaleString('zh-CN') : '-';
+            document.getElementById('detailRemarks').textContent = detail.remarks || '-';
+            document.getElementById('detailModal').classList.add('active');
+          } catch (e) {
+            showToast('获取详情失败: ' + e.message, 'error');
+          }
+        });
+      });
+
+      document.querySelectorAll('.action-btn.delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentDeleteId = btn.dataset.id;
+          document.getElementById('deleteModal').classList.add('active');
+        });
+      });
+    }
+
+    async function checkAuth() {
+      if (!token) {
+        showToast('请先登录', 'error');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+        return false;
+      }
+      return true;
+    }
+
+    async function init() {
+      const hasAuth = await checkAuth();
+      if (!hasAuth) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('startDate').value = today;
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
+
+      await loadStats();
+      await loadData();
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      currentEditId = null;
+      document.getElementById('modalTitle').textContent = '新增临时授权';
+      document.getElementById('accessForm').reset();
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('startDate').value = today;
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      document.getElementById('endDate').value = nextWeek.toISOString().split('T')[0];
+      document.getElementById('formModal').classList.add('active');
+    });
+
+    document.getElementById('closeModal').addEventListener('click', () => {
+      document.getElementById('formModal').classList.remove('active');
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+      document.getElementById('formModal').classList.remove('active');
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const visitorName = document.getElementById('visitorName').value.trim();
+      const permissionPages = document.getElementById('permissionPages').value.trim();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+
+      if (!visitorName) {
+        showToast('请填写访客姓名', 'error');
+        return;
+      }
+      if (!permissionPages) {
+        showToast('请填写授权页面', 'error');
+        return;
+      }
+      if (!startDate || !endDate) {
+        showToast('请选择有效期', 'error');
+        return;
+      }
+      if (new Date(endDate) < new Date(startDate)) {
+        showToast('结束日期不能早于开始日期', 'error');
+        return;
+      }
+
+      const data = {
+        visitorName: visitorName,
+        permissionPages: permissionPages,
+        startDate: startDate,
+        endDate: endDate,
+        approvedBy: document.getElementById('approvedBy').value.trim(),
+        remarks: document.getElementById('remarks').value.trim()
+      };
+
+      try {
+        await request(API_BASE, {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+        showToast('添加成功');
+        document.getElementById('formModal').classList.remove('active');
+        await loadStats();
+        await loadData();
+      } catch (e) {
+        showToast('保存失败: ' + e.message, 'error');
+      }
+    });
+
+    document.getElementById('closeDetailModal').addEventListener('click', () => {
+      document.getElementById('detailModal').classList.remove('active');
+    });
+
+    document.getElementById('closeDetailBtn').addEventListener('click', () => {
+      document.getElementById('detailModal').classList.remove('active');
+    });
+
+    document.getElementById('closeDeleteModal').addEventListener('click', () => {
+      document.getElementById('deleteModal').classList.remove('active');
+    });
+
+    document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
+      document.getElementById('deleteModal').classList.remove('active');
+    });
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+      try {
+        await request(`${API_BASE}/${currentDeleteId}`, {
+          method: 'DELETE'
+        });
+        showToast('删除成功');
+        document.getElementById('deleteModal').classList.remove('active');
+        await loadStats();
+        await loadData();
+      } catch (e) {
+        showToast('删除失败: ' + e.message, 'error');
+      }
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      currentPage = 1;
+      loadData();
+    });
+
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        currentPage = 1;
+        loadData();
+      }
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', () => {
+      currentPage = 1;
+      loadData();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('searchInput').value = '';
+      currentPage = 1;
+      loadData();
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        loadData();
+      }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      currentPage++;
+      loadData();
+    });
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+        }
+      });
+    });
+
+    init();
+  </script>
+</body>
+</html>

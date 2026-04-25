@@ -668,6 +668,11 @@
             <span class="icon">🔑</span>
             <span class="text">凭证池</span>
           </div>
+          
+          <div class="menu-item" @click="openTemporaryAccess">
+            <span class="icon">⏰</span>
+            <span class="text">临时授权</span>
+          </div>
         </div>
       </div>
 
@@ -739,6 +744,11 @@
               <div class="icon credentials">🔑</div>
               <h3>凭证池</h3>
               <p>管理第三方平台账号密钥</p>
+            </div>
+            <div class="dashboard-card" @click="openTemporaryAccess">
+              <div class="icon credentials" style="background: linear-gradient(135deg, #faad14 0%, #ff4d4f 100%);">⏰</div>
+              <h3>临时授权</h3>
+              <p>管理临时用户访问权限</p>
             </div>
           </div>
         </div>
@@ -1464,6 +1474,10 @@
           window.location.href = '/credential-pools.html';
         }
 
+        function openTemporaryAccess() {
+          window.location.href = '/temporary-access.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1507,7 +1521,8 @@
           deleteRole,
           deleteDept,
           deletePerm,
-          openCredentialPools
+          openCredentialPools,
+          openTemporaryAccess
         };
       }
     }).mount('#app');
