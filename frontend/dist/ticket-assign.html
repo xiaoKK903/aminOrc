@@ -433,7 +433,7 @@
   <script>
     const { createApp, ref, computed, onMounted } = Vue;
 
-    // 预定义数据
+    // 预定义数据（备用）
     const CHANNEL_DATA = {
       '官网': [
         { value: 'zhangsan', name: '张三' },
@@ -459,6 +459,92 @@
       { value: '微信群', name: '微信群' },
     ];
 
+    // 获取token
+    function getToken() {
+      return localStorage.getItem('token');
+    }
+
+    // 解析JWT获取用户信息
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // API调用
+    const API = {
+      baseUrl: '/api/ticket-assign',
+      
+      async request(url, options = {}) {
+        const token = getToken();
+        const headers = {
+          'Content-Type': 'application/json',
+          ...options.headers
+        };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(this.baseUrl + url, {
+          ...options,
+          headers
+        });
+        
+        if (response.status === 401) {
+          window.location.href = '/';
+          throw new Error('未登录，请先登录');
+        }
+        
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || '请求失败');
+        }
+        return data;
+      },
+      
+      async getChannels() {
+        try {
+          return await this.request('/channels');
+        } catch (e) {
+          console.error('获取渠道失败:', e);
+          return CHANNELS;
+        }
+      },
+      
+      async getOwners(channel) {
+        if (!channel) return [];
+        try {
+          return await this.request(`/owners?channel=${encodeURIComponent(channel)}`);
+        } catch (e) {
+          console.error('获取负责人失败:', e);
+          return CHANNEL_DATA[channel] || [];
+        }
+      },
+      
+      async assign(data) {
+        return await this.request('/assign', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+      },
+      
+      async getTickets() {
+        try {
+          return await this.request('/tickets');
+        } catch (e) {
+          console.error('获取工单记录失败:', e);
+          return [];
+        }
+      }
+    };
+
     createApp({
       setup() {
         const isLoading = ref(true);
@@ -467,6 +553,7 @@
         const channels = ref(CHANNELS);
         const selectedChannel = ref('');
         const selectedOwner = ref('');
+        const currentOwnersCache = ref([]);
         const history = ref([]);
         
         const showError = ref(false);
@@ -475,12 +562,31 @@
         const showToast = ref(false);
         const toastMessage = ref('');
         const toastType = ref('success');
+        
+        const currentUser = ref({
+          id: 'user-' + Date.now(),
+          name: '当前用户'
+        });
+
+        // 初始化用户信息
+        function initUserInfo() {
+          const token = getToken();
+          if (token) {
+            const payload = parseJwt(token);
+            if (payload) {
+              currentUser.value = {
+                id: payload.sub || payload.id || 'unknown',
+                name: payload.name || payload.username || '当前用户'
+              };
+            }
+          }
+        }
 
         const currentOwners = computed(() => {
           if (!selectedChannel.value) {
             return [];
           }
-          return CHANNEL_DATA[selectedChannel.value] || [];
+          return currentOwnersCache.value;
         });
 
         const selectedOwnerName = computed(() => {
@@ -501,17 +607,24 @@
           }, 3000);
         }
 
-        function handleChannelChange() {
-          // 切换渠道后，清空已选负责人
+        async function handleChannelChange() {
           selectedOwner.value = '';
           showError.value = false;
           errorMessage.value = '';
-          showToastFunc(`已切换到「${selectedChannel.value}」渠道`, 'success');
+          
+          // 加载新渠道的负责人
+          if (selectedChannel.value) {
+            currentOwnersCache.value = await API.getOwners(selectedChannel.value);
+            showToastFunc(`已切换到「${selectedChannel.value}」渠道`, 'success');
+          } else {
+            currentOwnersCache.value = [];
+          }
         }
 
         function resetForm() {
           selectedChannel.value = '';
           selectedOwner.value = '';
+          currentOwnersCache.value = [];
           showError.value = false;
           errorMessage.value = '';
         }
@@ -550,7 +663,6 @@
             return false;
           }
 
-          // 校验负责人是否属于当前渠道
           const validOwners = currentOwners.value.map(o => o.value);
           if (!validOwners.includes(selectedOwner.value)) {
             showError.value = true;
@@ -562,11 +674,7 @@
           return true;
         }
 
-        function generateId() {
-          return 'ticket-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        }
-
-        function submitAssign() {
+        async function submitAssign() {
           const isValid = validateAssignment();
           
           if (!isValid) {
@@ -576,30 +684,47 @@
 
           isSubmitting.value = true;
 
-          // 模拟提交
-          setTimeout(() => {
-            const record = {
-              id: generateId(),
+          try {
+            const result = await API.assign({
               channel: selectedChannel.value,
               ownerValue: selectedOwner.value,
               ownerName: selectedOwnerName.value,
-              assignedByName: '当前用户',
-              assignedAt: new Date().toISOString(),
-            };
+              userId: currentUser.value.id,
+              userName: currentUser.value.name
+            });
 
-            history.value.unshift(record);
+            // 刷新历史记录
+            await loadHistory();
             
-            showToastFunc('工单分配成功！', 'success');
+            showToastFunc('工单分配成功！数据已保存。', 'success');
             resetForm();
+          } catch (e) {
+            showError.value = true;
+            errorMessage.value = e.message;
+            showToastFunc(e.message, 'error');
+          } finally {
             isSubmitting.value = false;
-          }, 500);
+          }
+        }
+
+        async function loadHistory() {
+          history.value = await API.getTickets();
+        }
+
+        async function init() {
+          initUserInfo();
+          
+          // 加载渠道
+          channels.value = await API.getChannels();
+          
+          // 加载历史记录
+          await loadHistory();
+          
+          isLoading.value = false;
         }
 
         onMounted(() => {
-          // 初始化加载
-          setTimeout(() => {
-            isLoading.value = false;
-          }, 300);
+          init();
         });
 
         return {
@@ -617,6 +742,7 @@
           showToast,
           toastMessage,
           toastType,
+          currentUser,
           handleChannelChange,
           resetForm,
           getChannelClass,

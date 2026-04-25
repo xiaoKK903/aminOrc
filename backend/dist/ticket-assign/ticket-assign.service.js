@@ -12,6 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TicketAssignService = void 0;
 const common_1 = require("@nestjs/common");
 const uuid_1 = require("uuid");
+const fs = require("fs");
+const path = require("path");
+const DATA_FILE = path.join(__dirname, '../../data/ticket-assign.json');
 const CHANNEL_DATA = {
     '官网': [
         { id: 'o1', name: '张三', value: 'zhangsan' },
@@ -35,7 +38,31 @@ const CHANNELS = [
     { id: 'app', name: 'App', value: 'App' },
     { id: 'wechat', name: '微信群', value: '微信群' },
 ];
-let tickets = [];
+function readTickets() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const data = fs.readFileSync(DATA_FILE, 'utf-8');
+            return JSON.parse(data);
+        }
+        return [];
+    }
+    catch (e) {
+        console.error('读取工单数据失败:', e);
+        return [];
+    }
+}
+function saveTickets(tickets) {
+    try {
+        const dataDir = path.dirname(DATA_FILE);
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+        fs.writeFileSync(DATA_FILE, JSON.stringify(tickets, null, 2), 'utf-8');
+    }
+    catch (e) {
+        console.error('保存工单数据失败:', e);
+    }
+}
 let TicketAssignService = class TicketAssignService {
     getChannels() {
         return CHANNELS;
@@ -67,10 +94,13 @@ let TicketAssignService = class TicketAssignService {
             assignedAt: new Date().toISOString(),
             status: 'assigned',
         };
-        tickets.push(ticket);
+        const tickets = readTickets();
+        tickets.unshift(ticket);
+        saveTickets(tickets);
         return ticket;
     }
     getTickets(userId, userRole) {
+        const tickets = readTickets();
         if (userRole === 'admin') {
             return tickets;
         }
