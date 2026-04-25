@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": "f8716ce5-57bb-48bc-aaa6-7a67b6554e66",
+    "visitorName": "hai",
+    "permissionPages": "数据大屏",
+    "startDate": "2026-04-25",
+    "endDate": "2026-05-02",
+    "approvedBy": "",
+    "remarks": "",
+    "createdBy": "ce9e32a9-09c3-4555-96c6-671ff94be14f",
+    "createdByName": "测试用户",
+    "createdAt": "2026-04-25T09:50:53.085Z",
+    "updatedAt": "2026-04-25T09:50:53.085Z"
+  }
+]
