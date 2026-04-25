@@ -673,6 +673,11 @@
             <span class="icon">⏰</span>
             <span class="text">临时授权</span>
           </div>
+          
+          <div class="menu-item" @click="openTicketAssign">
+            <span class="icon">🎫</span>
+            <span class="text">工单分配</span>
+          </div>
         </div>
       </div>
 
@@ -749,6 +754,11 @@
               <div class="icon credentials" style="background: linear-gradient(135deg, #faad14 0%, #ff4d4f 100%);">⏰</div>
               <h3>临时授权</h3>
               <p>管理临时用户访问权限</p>
+            </div>
+            <div class="dashboard-card" @click="openTicketAssign">
+              <div class="icon credentials" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🎫</div>
+              <h3>工单分配</h3>
+              <p>按渠道分配工单负责人</p>
             </div>
           </div>
         </div>
@@ -1478,6 +1488,10 @@
           window.location.href = '/temporary-access.html';
         }
 
+        function openTicketAssign() {
+          window.location.href = '/ticket-assign.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1522,7 +1536,8 @@
           deleteDept,
           deletePerm,
           openCredentialPools,
-          openTemporaryAccess
+          openTemporaryAccess,
+          openTicketAssign
         };
       }
     }).mount('#app');

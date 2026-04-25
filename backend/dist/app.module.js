@@ -35,6 +35,7 @@ const forms_module_1 = require("./forms/forms.module");
 const workflows_module_1 = require("./workflows/workflows.module");
 const credential_pools_module_1 = require("./credential-pools/credential-pools.module");
 const temporary_access_module_1 = require("./temporary-access/temporary-access.module");
+const ticket_assign_module_1 = require("./ticket-assign/ticket-assign.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -63,6 +64,7 @@ exports.AppModule = AppModule = __decorate([
             workflows_module_1.WorkflowsModule,
             credential_pools_module_1.CredentialPoolsModule,
             temporary_access_module_1.TemporaryAccessModule,
+            ticket_assign_module_1.TicketAssignModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService, permissions_service_1.PermissionsService, roles_service_1.RolesService, users_service_1.UsersService],

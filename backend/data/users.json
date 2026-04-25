@@ -65,5 +65,16 @@
     "isAdmin": true,
     "createdAt": "2026-04-25T05:41:59.906Z",
     "updatedAt": "2026-04-25T05:41:59.906Z"
+  },
+  {
+    "id": "5920d80a-e205-4d34-a536-817a650af5ca",
+    "email": "hai@123.com",
+    "password": "$2b$10$oMOuBCHnpKkWjI.G8uDgQ.cHcJpKmJvopz0eLyHPDu5nftKJHoJ.O",
+    "name": "测试用户",
+    "role": "admin",
+    "status": "active",
+    "isAdmin": true,
+    "createdAt": "2026-04-25T09:59:25.989Z",
+    "updatedAt": "2026-04-25T09:59:25.989Z"
   }
 ]

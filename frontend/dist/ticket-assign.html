@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工单分配 - NO-CRM</title>
+  <link rel="stylesheet" href="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --border-color: #e5e7eb;
+      --input-bg: #ffffff;
+      --input-disabled-bg: #f3f4f6;
+      --shadow-color: rgba(0, 0, 0, 0.06);
+      --hover-bg: #f9fafb;
+    }
+
+    .dark-mode {
+      --bg-color: #111827;
+      --card-bg: #1f2937;
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --border-color: #374151;
+      --input-bg: #374151;
+      --input-disabled-bg: #1f2937;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --hover-bg: #374151;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .back-link {
+      color: white;
+      text-decoration: none;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 12px var(--shadow-color);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .form-group label .required {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    .form-group label .hint {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: normal;
+      margin-left: 8px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 15px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+    }
+
+    .form-control:disabled {
+      background: var(--input-disabled-bg);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    select.form-control {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+      padding-right: 44px;
+    }
+
+    select.form-control:disabled {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      border-color: #06b6d4;
+      color: #06b6d4;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .toast {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2000;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.active {
+      display: block;
+    }
+
+    .toast.success {
+      background: #10b981;
+    }
+
+    .toast.error {
+      background: #ef4444;
+    }
+
+    .toast.warning {
+      background: #f59e0b;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .breadcrumb {
+      padding: 12px 0 24px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .breadcrumb a {
+      color: #06b6d4;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumb span {
+      margin: 0 8px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 24px 0;
+    }
+
+    .history-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      border-left: 4px solid #06b6d4;
+      transition: background 0.3s;
+    }
+
+    .history-card:hover {
+      background: var(--hover-bg);
+    }
+
+    .history-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .history-channel {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .channel-official {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .dark-mode .channel-official {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+
+    .channel-app {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .dark-mode .channel-app {
+      background: #14532d;
+      color: #6ee7b7;
+    }
+
+    .channel-wechat {
+      background: #fce7f3;
+      color: #be185d;
+    }
+
+    .dark-mode .channel-wechat {
+      background: #4a1942;
+      color: #f9a8d4;
+    }
+
+    .history-owner {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .history-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .channel-info {
+      background: linear-gradient(135deg, #ecfeff 0%, #f0fdf4 100%);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      border-left: 3px solid #06b6d4;
+    }
+
+    .dark-mode .channel-info {
+      background: linear-gradient(135deg, #164e63 0%, #14532d 100%);
+    }
+
+    .channel-info h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0e7490;
+      margin-bottom: 8px;
+    }
+
+    .dark-mode .channel-info h4 {
+      color: #22d3ee;
+    }
+
+    .channel-info p {
+      font-size: 13px;
+      color: #065f46;
+      line-height: 1.6;
+    }
+
+    .dark-mode .channel-info p {
+      color: #6ee7b7;
+    }
+
+    .error-message {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #dc2626;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .error-message.show {
+      display: flex;
+    }
+
+    .error-message .icon {
+      font-size: 16px;
+    }
+
+    .status-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .dark-mode .status-active {
+      background: #14532d;
+      color: #86efac;
+    }
+  </style>
+</head>
+<body id="app-body">
+  <div id="app">
+    <div class="header">
+      <h1>🎫 工单分配</h1>
+      <div class="header-right">
+        <div class="theme-toggle" @click="toggleTheme">
+          <span>{{ isDark ? '☀️ 浅色' : '🌙 深色' }}</span>
+        </div>
+        <a href="/" class="back-link">← 返回主系统</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="breadcrumb">
+        <a href="/">首页</a>
+        <span>/</span>
+        <span>工单分配</span>
+      </div>
+
+      <div class="card" v-if="isLoading">
+        <div class="loading">加载中...</div>
+      </div>
+
+      <div v-else>
+        <div class="card">
+          <h2 class="card-title">分配工单</h2>
+          <p class="card-subtitle">选择渠道后，负责人列表将自动切换</p>
+
+          <div class="channel-info">
+            <h4>📋 渠道说明</h4>
+            <p>
+              <strong>官网</strong>: 张三、李四、王五 |
+              <strong>App</strong>: 赵六、钱七、孙八 |
+              <strong>微信群</strong>: 周九、吴十、郑十一、王十二
+            </p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>
+                渠道<span class="required">*</span>
+                <span class="hint">请先选择渠道</span>
+              </label>
+              <select 
+                class="form-control" 
+                v-model="selectedChannel" 
+                @change="onChannelChange"
+              >
+                <option value="">请选择渠道</option>
+                <option v-for="channel in channels" :key="channel.value" :value="channel.value">
+                  {{ channel.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>
+                负责人<span class="required">*</span>
+                <span class="hint" v-if="!selectedChannel" style="color: #9ca3af;">请先选择渠道</span>
+                <span class="hint" v-else style="color: #06b6d4;">已为您切换到{{ selectedChannel }}的负责人</span>
+              </label>
+              <select 
+                class="form-control" 
+                v-model="selectedOwner" 
+                :disabled="!selectedChannel"
+              >
+                <option value="">请选择负责人</option>
+                <option v-for="owner in owners" :key="owner.value" :value="owner.value">
+                  {{ owner.name }}
+                </option>
+              </select>
+              <div class="error-message" :class="{ show: showError }">
+                <span class="icon">⚠️</span>
+                {{ errorMessage }}
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" v-if="selectedChannel && selectedOwner">
+            <label>分配预览</label>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+              <span class="channel-tag" :class="'channel-' + getChannelClass(selectedChannel)">
+                {{ selectedChannel }}
+              </span>
+              <span style="color: var(--text-secondary);">→</span>
+              <span style="font-weight: 600; color: var(--text-primary);">{{ selectedOwnerName }}</span>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-secondary" @click="resetForm">重置</button>
+            <button class="btn btn-primary" @click="submitAssign" :disabled="!canSubmit || isSubmitting">
+              {{ isSubmitting ? '提交中...' : '确认分配' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="card" v-if="history.length > 0">
+          <h2 class="card-title">分配记录</h2>
+          <p class="card-subtitle">最近的工单分配记录</p>
+
+          <div class="history-card" v-for="item in history" :key="item.id">
+            <div class="history-row">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="history-channel" :class="'channel-' + getChannelClass(item.channel)">
+                  {{ item.channel }}
+                </span>
+                <span class="history-owner">{{ item.ownerName }}</span>
+              </div>
+              <span class="status-tag status-active">已分配</span>
+            </div>
+            <div class="history-meta">
+              分配人: {{ item.assignedByName || '系统' }} | 
+              分配时间: {{ formatDate(item.assignedAt) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="card" v-else>
+          <div class="empty-state">
+            <div class="icon">📋</div>
+            <p>暂无分配记录</p>
+            <p style="margin-top: 8px; font-size: 12px;">完成第一次工单分配后，记录将显示在这里</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" :class="{ active: showToast, [toastType]: true }">
+      {{ toastMessage }}
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    const API_BASE = '/api/ticket-assign';
+    const AUTH_BASE = '/api/auth';
+    
+    let token = localStorage.getItem('token');
+
+    createApp({
+      setup() {
+        const isDark = ref(false);
+        const isLoading = ref(true);
+        const isSubmitting = ref(false);
+        
+        const channels = ref([]);
+        const owners = ref([]);
+        
+        const selectedChannel = ref('');
+        const selectedOwner = ref('');
+        const history = ref([]);
+        
+        const showError = ref(false);
+        const errorMessage = ref('');
+        
+        const showToast = ref(false);
+        const toastMessage = ref('');
+        const toastType = ref('success');
+
+        const canSubmit = computed(() => {
+          return selectedChannel.value && selectedOwner.value;
+        });
+
+        const selectedOwnerName = computed(() => {
+          const owner = owners.value.find(o => o.value === selectedOwner.value);
+          return owner ? owner.name : '';
+        });
+
+        function toggleTheme() {
+          isDark.value = !isDark.value;
+          const body = document.getElementById('app-body');
+          if (isDark.value) {
+            body.classList.add('dark-mode');
+            localStorage.setItem('darkMode', 'true');
+          } else {
+            body.classList.remove('dark-mode');
+            localStorage.setItem('darkMode', 'false');
+          }
+        }
+
+        function getChannelClass(channel) {
+          switch (channel) {
+            case '官网': return 'official';
+            case 'App': return 'app';
+            case '微信群': return 'wechat';
+            default: return 'official';
+          }
+        }
+
+        function showToastFunc(message, type = 'success') {
+          toastMessage.value = message;
+          toastType.value = type;
+          showToast.value = true;
+          setTimeout(() => {
+            showToast.value = false;
+          }, 3000);
+        }
+
+        function formatDate(dateStr) {
+          if (!dateStr) return '-';
+          const date = new Date(dateStr);
+          return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+
+        async function loadChannels() {
+          try {
+            const response = await fetch(`${API_BASE}/channels`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              channels.value = data;
+            }
+          } catch (e) {
+            console.error('加载渠道失败:', e);
+            channels.value = [
+              { id: 'official', name: '官网', value: '官网' },
+              { id: 'app', name: 'App', value: 'App' },
+              { id: 'wechat', name: '微信群', value: '微信群' },
+            ];
+          }
+        }
+
+        async function loadOwners(channel) {
+          if (!channel) {
+            owners.value = [];
+            return;
+          }
+          
+          try {
+            const response = await fetch(`${API_BASE}/owners?channel=${encodeURIComponent(channel)}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              owners.value = data;
+            }
+          } catch (e) {
+            console.error('加载负责人失败:', e);
+            const mockData = {
+              '官网': [
+                { id: 'o1', name: '张三', value: 'zhangsan' },
+                { id: 'o2', name: '李四', value: 'lisi' },
+                { id: 'o3', name: '王五', value: 'wangwu' },
+              ],
+              'App': [
+                { id: 'a1', name: '赵六', value: 'zhaoliu' },
+                { id: 'a2', name: '钱七', value: 'qianqi' },
+                { id: 'a3', name: '孙八', value: 'sunba' },
+              ],
+              '微信群': [
+                { id: 'w1', name: '周九', value: 'zhoujiu' },
+                { id: 'w2', name: '吴十', value: 'wushi' },
+                { id: 'w3', name: '郑十一', value: 'zheng11' },
+                { id: 'w4', name: '王十二', value: 'wang12' },
+              ],
+            };
+            owners.value = mockData[channel] || [];
+          }
+        }
+
+        async function loadHistory() {
+          try {
+            const response = await fetch(`${API_BASE}/tickets`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              history.value = data.slice(-10).reverse();
+            }
+          } catch (e) {
+            console.error('加载历史失败:', e);
+          }
+        }
+
+        function onChannelChange() {
+          selectedOwner.value = '';
+          showError.value = false;
+          errorMessage.value = '';
+          loadOwners(selectedChannel.value);
+          showToastFunc(`已切换到「${selectedChannel.value}」渠道，负责人列表已更新`, 'success');
+        }
+
+        function resetForm() {
+          selectedChannel.value = '';
+          selectedOwner.value = '';
+          owners.value = [];
+          showError.value = false;
+          errorMessage.value = '';
+        }
+
+        async function validateAssignment() {
+          if (!selectedChannel.value) {
+            showError.value = true;
+            errorMessage.value = '请选择渠道';
+            return false;
+          }
+          
+          if (!selectedOwner.value) {
+            showError.value = true;
+            errorMessage.value = '请选择负责人';
+            return false;
+          }
+
+          const validOwners = owners.value.map(o => o.value);
+          if (!validOwners.includes(selectedOwner.value)) {
+            showError.value = true;
+            errorMessage.value = `负责人「${selectedOwnerName.value}」不属于「${selectedChannel.value}」渠道，请重新选择`;
+            return false;
+          }
+
+          try {
+            const response = await fetch(`${API_BASE}/validate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                channel: selectedChannel.value,
+                ownerValue: selectedOwner.value
+              })
+            });
+            
+            if (!response.ok) {
+              const error = await response.json();
+              showError.value = true;
+              errorMessage.value = error.message || '验证失败';
+              return false;
+            }
+          } catch (e) {
+            const validOwners = owners.value.map(o => o.value);
+            if (!validOwners.includes(selectedOwner.value)) {
+              showError.value = true;
+              errorMessage.value = `负责人与渠道不匹配`;
+              return false;
+            }
+          }
+
+          showError.value = false;
+          return true;
+        }
+
+        async function submitAssign() {
+          const isValid = await validateAssignment();
+          
+          if (!isValid) {
+            showToastFunc(errorMessage.value, 'error');
+            return;
+          }
+
+          isSubmitting.value = true;
+          
+          try {
+            const response = await fetch(`${API_BASE}/assign`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                channel: selectedChannel.value,
+                ownerValue: selectedOwner.value,
+                ownerName: selectedOwnerName.value
+              })
+            });
+            
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.message || '分配失败');
+            }
+
+            const result = await response.json();
+            history.value.unshift(result);
+            
+            showToastFunc('工单分配成功！', 'success');
+            resetForm();
+            
+          } catch (e) {
+            showError.value = true;
+            errorMessage.value = e.message;
+            showToastFunc(e.message, 'error');
+          } finally {
+            isSubmitting.value = false;
+          }
+        }
+
+        async function checkAuth() {
+          if (!token) {
+            showToastFunc('请先登录', 'error');
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 1500);
+            return false;
+          }
+          return true;
+        }
+
+        async function init() {
+          const savedDarkMode = localStorage.getItem('darkMode');
+          if (savedDarkMode === 'true') {
+            isDark.value = true;
+            document.getElementById('app-body').classList.add('dark-mode');
+          }
+
+          const hasAuth = await checkAuth();
+          if (!hasAuth) return;
+
+          await loadChannels();
+          await loadHistory();
+          
+          isLoading.value = false;
+        }
+
+        onMounted(() => {
+          init();
+        });
+
+        return {
+          isDark,
+          isLoading,
+          isSubmitting,
+          channels,
+          owners,
+          selectedChannel,
+          selectedOwner,
+          selectedOwnerName,
+          history,
+          showError,
+          errorMessage,
+          showToast,
+          toastMessage,
+          toastType,
+          canSubmit,
+          toggleTheme,
+          getChannelClass,
+          formatDate,
+          onChannelChange,
+          resetForm,
+          submitAssign,
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
