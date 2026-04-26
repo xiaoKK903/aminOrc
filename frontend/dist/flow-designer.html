@@ -414,10 +414,6 @@
     .condition-rule:last-child {
       margin-bottom: 0;
     }
-    .condition-rule select,
-    .condition-rule input {
-      width: 100%;
-    }
     .add-rule-btn {
       width: 100%;
       padding: 8px;
@@ -674,16 +670,6 @@
                   v-on:click="deleteConnection(index)"
                   marker-end="url(#arrowhead)"
                 ></path>
-                
-                <!-- 连线标签 -->
-                <text 
-                  v-for="(connection, index) in connections" 
-                  :key="'label-' + index"
-                  class="connection-label"
-                  v-if="connection.label"
-                  v-bind:x="connection.labelX"
-                  v-bind:y="connection.labelY"
-                >{{ connection.label }}</text>
               </svg>
             </div>
 
@@ -738,7 +724,7 @@
           </ul>
         </div>
 
-        <div v-if="!selectedNode" class="no-selection">
+        <div v-if="!hasSelectedNode" class="no-selection">
           <div class="icon">👆</div>
           <p>请选择一个节点</p>
         </div>
@@ -748,20 +734,20 @@
             <h3>📋 基本属性</h3>
             <div class="property-item">
               <label>节点类型</label>
-              <input type="text" v-model="selectedNode.typeDisplay" disabled>
+              <input type="text" :value="selectedNodeTypeDisplay" disabled>
             </div>
             <div class="property-item">
               <label>节点名称</label>
-              <input type="text" v-model="selectedNode.name" v-on:input="onNodeChange">
+              <input type="text" :value="selectedNodeName" v-on:input="onNodeNameInput">
             </div>
           </div>
 
           <!-- 审批节点属性 -->
-          <div class="property-group" v-if="selectedNode.type === 'approval'">
+          <div class="property-group" v-if="isSelectedNodeApproval">
             <h3>👤 审批配置</h3>
             <div class="property-item">
               <label>审批人</label>
-              <select v-model="selectedNode.approver" v-on:change="onNodeChange">
+              <select :value="selectedNodeApprover" v-on:change="onApproverChange">
                 <option value="">请选择审批人</option>
                 <option value="部门经理">部门经理</option>
                 <option value="总经理">总经理</option>
@@ -772,35 +758,35 @@
             </div>
             <div class="property-item">
               <label>审批说明</label>
-              <textarea v-model="selectedNode.description" placeholder="请输入审批说明..." v-on:input="onNodeChange"></textarea>
+              <textarea :value="selectedNodeDescription" v-on:input="onDescriptionInput" placeholder="请输入审批说明..."></textarea>
             </div>
           </div>
 
           <!-- 条件分支属性 -->
-          <div class="property-group" v-if="selectedNode.type === 'condition'">
+          <div class="property-group" v-if="isSelectedNodeCondition">
             <h3>🎯 条件配置</h3>
             
             <div class="branch-options">
               <div class="branch-option">
                 <span class="branch-label">分支 1 名称:</span>
-                <input type="text" v-model="selectedNode.branch1" placeholder="如: 同意" v-on:input="onNodeChange">
+                <input type="text" :value="selectedNodeBranch1" v-on:input="onBranch1Input" placeholder="如: 同意">
               </div>
               <div class="branch-option">
                 <span class="branch-label">分支 2 名称:</span>
-                <input type="text" v-model="selectedNode.branch2" placeholder="如: 拒绝" v-on:input="onNodeChange">
+                <input type="text" :value="selectedNodeBranch2" v-on:input="onBranch2Input" placeholder="如: 拒绝">
               </div>
             </div>
 
             <h3 style="margin-top: 20px;">📋 条件规则 (分支 1)</h3>
             <div class="condition-rules">
-              <div v-for="(rule, index) in selectedNode.rules" :key="index" class="condition-rule">
-                <select v-model="rule.field" v-on:change="onNodeChange">
+              <div v-for="(rule, index) in selectedNodeRules" :key="index" class="condition-rule">
+                <select :value="rule.field" v-on:change="onRuleFieldChange(index, $event)">
                   <option value="leaveDays">请假天数</option>
                   <option value="leaveType">请假类型</option>
                   <option value="department">部门</option>
                   <option value="amount">金额</option>
                 </select>
-                <select v-model="rule.operator" v-on:change="onNodeChange">
+                <select :value="rule.operator" v-on:change="onRuleOperatorChange(index, $event)">
                   <option value="gt">大于</option>
                   <option value="gte">大于等于</option>
                   <option value="lt">小于</option>
@@ -808,7 +794,7 @@
                   <option value="eq">等于</option>
                   <option value="ne">不等于</option>
                 </select>
-                <input type="text" v-model="rule.value" placeholder="值" v-on:input="onNodeChange">
+                <input type="text" :value="rule.value" v-on:input="onRuleValueChange(index, $event)" placeholder="值">
                 <button class="remove-rule-btn" v-on:click="removeRule(index)">×</button>
               </div>
               <button class="add-rule-btn" v-on:click="addRule">+ 添加规则</button>
@@ -828,13 +814,11 @@
   </div>
 
   <script>
-    console.log('Vue 加载状态:', typeof Vue !== 'undefined' ? '已加载' : '未加载');
-    
-    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+    const { createApp, ref, computed, onMounted } = Vue;
 
-    const app = createApp({
+    createApp({
       setup() {
-        console.log('Vue setup 开始执行');
+        console.log('流程设计器 setup 开始执行');
         
         // 数据
         const nodes = ref([]);
@@ -848,7 +832,6 @@
         // 连线状态
         const drawingConnection = ref(false);
         const connectionStartNode = ref(null);
-        const connectionStartPort = ref('');
         const tempLinePath = ref('');
         
         // 节点拖动状态
@@ -858,13 +841,10 @@
         // Canvas 引用
         const canvasRef = ref(null);
 
-        // 表单字段
-        const formFields = [
-          { value: 'leaveDays', label: '请假天数' },
-          { value: 'leaveType', label: '请假类型' },
-          { value: 'department', label: '部门' },
-          { value: 'amount', label: '金额' },
-        ];
+        // Toast 状态
+        const showToast = ref(false);
+        const toastMessage = ref('');
+        const toastType = ref('success');
 
         // 计算属性
         const hasStartNode = computed(() => {
@@ -875,47 +855,97 @@
           return nodes.value.some(n => n.type === 'end');
         });
 
-        const selectedNode = computed(() => {
-          return nodes.value.find(n => n.id === selectedNodeId.value);
+        const hasSelectedNode = computed(() => {
+          return selectedNodeId.value !== null && getSelectedNode() !== null;
+        });
+
+        const isSelectedNodeApproval = computed(() => {
+          const node = getSelectedNode();
+          return node && node.type === 'approval';
+        });
+
+        const isSelectedNodeCondition = computed(() => {
+          const node = getSelectedNode();
+          return node && node.type === 'condition';
+        });
+
+        const selectedNodeTypeDisplay = computed(() => {
+          const node = getSelectedNode();
+          return node ? getTypeDisplay(node.type) : '';
+        });
+
+        const selectedNodeName = computed(() => {
+          const node = getSelectedNode();
+          return node ? node.name : '';
+        });
+
+        const selectedNodeApprover = computed(() => {
+          const node = getSelectedNode();
+          return node ? (node.approver || '') : '';
+        });
+
+        const selectedNodeDescription = computed(() => {
+          const node = getSelectedNode();
+          return node ? (node.description || '') : '';
+        });
+
+        const selectedNodeBranch1 = computed(() => {
+          const node = getSelectedNode();
+          return node ? (node.branch1 || '同意') : '';
+        });
+
+        const selectedNodeBranch2 = computed(() => {
+          const node = getSelectedNode();
+          return node ? (node.branch2 || '拒绝') : '';
+        });
+
+        const selectedNodeRules = computed(() => {
+          const node = getSelectedNode();
+          return node ? (node.rules || []) : [];
         });
 
         const formattedJSON = computed(() => {
-          const data = {
-            nodes: nodes.value.map(n => ({
-              id: n.id,
-              type: n.type,
-              name: n.name,
-              x: n.x,
-              y: n.y,
-              approver: n.approver || null,
-              description: n.description || null,
-              rules: n.rules || [],
-              branch1: n.branch1 || null,
-              branch2: n.branch2 || null,
-            })),
-            connections: connections.value.map(c => ({
-              from: c.from,
-              to: c.to,
-              label: c.label || null,
-            }))
-          };
-          return JSON.stringify(data, null, 2);
+          try {
+            const data = {
+              nodes: nodes.value.map(n => ({
+                id: n.id || '',
+                type: n.type || '',
+                name: n.name || '',
+                x: n.x || 0,
+                y: n.y || 0,
+                approver: n.approver || null,
+                description: n.description || null,
+                rules: n.rules || [],
+                branch1: n.branch1 || null,
+                branch2: n.branch2 || null,
+              })),
+              connections: connections.value.map(c => ({
+                from: c.from || '',
+                to: c.to || '',
+                label: c.label || null,
+              }))
+            };
+            return JSON.stringify(data, null, 2);
+          } catch (e) {
+            console.error('JSON 格式化错误:', e);
+            return '{}';
+          }
         });
 
-        // 方法
+        // 辅助函数
+        function getSelectedNode() {
+          if (!selectedNodeId.value) return null;
+          return nodes.value.find(n => n.id === selectedNodeId.value);
+        }
+
         function generateId() {
           return 'node-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         }
 
         function showToastFunc(message, type = 'success') {
-          const toast = {
-            message: message,
-            type: type,
-            show: true
-          };
-          showToast.value = true;
           toastMessage.value = message;
           toastType.value = type;
+          showToast.value = true;
           setTimeout(() => {
             showToast.value = false;
           }, 3000);
@@ -941,6 +971,16 @@
           return displays[type] || type;
         }
 
+        function getDefaultName(type) {
+          const defaults = {
+            start: '开始',
+            approval: '审批节点',
+            condition: '条件判断',
+            end: '结束'
+          };
+          return defaults[type] || '节点';
+        }
+
         // 节点拖拽开始
         function onNodeDragStart(event, type) {
           if (type === 'start' && hasStartNode.value) {
@@ -964,6 +1004,8 @@
           if (!type) return;
 
           const canvas = canvasRef.value;
+          if (!canvas) return;
+          
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left - 60;
           const y = event.clientY - rect.top - 40;
@@ -976,7 +1018,6 @@
           const node = {
             id: generateId(),
             type: type,
-            typeDisplay: getTypeDisplay(type),
             name: getDefaultName(type),
             x: x,
             y: y,
@@ -991,25 +1032,10 @@
           showToastFunc('✅ 已添加' + getTypeDisplay(type));
         }
 
-        function getDefaultName(type) {
-          const defaults = {
-            start: '开始',
-            approval: '审批节点',
-            condition: '条件判断',
-            end: '结束'
-          };
-          return defaults[type] || '节点';
-        }
-
         // 选择节点
         function selectNode(id) {
           selectedNodeId.value = id;
           validationResult.value = null;
-        }
-
-        // 节点变更
-        function onNodeChange() {
-          // 触发响应式更新
         }
 
         // 删除节点
@@ -1048,6 +1074,8 @@
           if (!draggingNode.value) return;
           
           const canvas = canvasRef.value;
+          if (!canvas) return;
+          
           const rect = canvas.getBoundingClientRect();
           
           draggingNode.value.x = Math.max(10, event.clientX - dragOffset.value.x);
@@ -1072,7 +1100,6 @@
 
           drawingConnection.value = true;
           connectionStartNode.value = node;
-          connectionStartPort.value = port;
 
           document.addEventListener('mousemove', onConnectionMouseMove);
           document.addEventListener('mouseup', onConnectionMouseUp);
@@ -1082,6 +1109,8 @@
           if (!drawingConnection.value || !connectionStartNode.value) return;
 
           const canvas = canvasRef.value;
+          if (!canvas) return;
+          
           const rect = canvas.getBoundingClientRect();
           
           const startX = connectionStartNode.value.x + 120;
@@ -1112,7 +1141,6 @@
 
           drawingConnection.value = false;
           connectionStartNode.value = null;
-          connectionStartPort.value = '';
           tempLinePath.value = '';
 
           document.removeEventListener('mousemove', onConnectionMouseMove);
@@ -1121,11 +1149,14 @@
 
         function findPortAt(x, y) {
           const canvas = canvasRef.value;
+          if (!canvas) return null;
+          
           const rect = canvas.getBoundingClientRect();
           const canvasX = x - rect.left;
           const canvasY = y - rect.top;
 
-          for (const node of nodes.value) {
+          for (let i = 0; i < nodes.value.length; i++) {
+            const node = nodes.value[i];
             // 检查左端口
             const leftPortX = node.x - 8;
             const leftPortY = node.y + 40;
@@ -1165,7 +1196,10 @@
 
         // 更新所有连线的路径
         function updateConnections() {
-          connections.value.forEach(conn => {
+          for (let i = 0; i < connections.value.length; i++) {
+            const conn = connections.value[i];
+            if (!conn) continue;
+            
             const fromNode = nodes.value.find(n => n.id === conn.from);
             const toNode = nodes.value.find(n => n.id === conn.to);
             
@@ -1176,12 +1210,8 @@
               const endY = toNode.y + 40;
               
               conn.path = createBezierPath(startX, startY, endX, endY);
-              
-              // 标签位置
-              conn.labelX = (startX + endX) / 2;
-              conn.labelY = (startY + endY) / 2 - 10;
             }
-          });
+          }
         }
 
         // 创建贝塞尔曲线路径
@@ -1194,25 +1224,88 @@
           const cp2x = x2 - controlOffset;
           const cp2y = y2;
           
-          return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+          return 'M ' + x1 + ' ' + y1 + ' C ' + cp1x + ' ' + cp1y + ', ' + cp2x + ' ' + cp2y + ', ' + x2 + ' ' + y2;
+        }
+
+        // 属性变更处理
+        function onNodeNameInput(event) {
+          const node = getSelectedNode();
+          if (node) {
+            node.name = event.target.value;
+          }
+        }
+
+        function onApproverChange(event) {
+          const node = getSelectedNode();
+          if (node) {
+            node.approver = event.target.value;
+            showToastFunc('✅ 属性已更新');
+          }
+        }
+
+        function onDescriptionInput(event) {
+          const node = getSelectedNode();
+          if (node) {
+            node.description = event.target.value;
+          }
+        }
+
+        function onBranch1Input(event) {
+          const node = getSelectedNode();
+          if (node) {
+            node.branch1 = event.target.value;
+          }
+        }
+
+        function onBranch2Input(event) {
+          const node = getSelectedNode();
+          if (node) {
+            node.branch2 = event.target.value;
+          }
         }
 
         // 条件规则
         function addRule() {
-          if (selectedNode.value) {
-            selectedNode.value.rules.push({
+          const node = getSelectedNode();
+          if (node) {
+            if (!node.rules) {
+              node.rules = [];
+            }
+            node.rules.push({
               field: 'leaveDays',
               operator: 'gt',
               value: '3'
             });
-            onNodeChange();
+            showToastFunc('✅ 规则已添加');
           }
         }
 
         function removeRule(index) {
-          if (selectedNode.value) {
-            selectedNode.value.rules.splice(index, 1);
-            onNodeChange();
+          const node = getSelectedNode();
+          if (node && node.rules) {
+            node.rules.splice(index, 1);
+            showToastFunc('🗑️ 规则已删除');
+          }
+        }
+
+        function onRuleFieldChange(index, event) {
+          const node = getSelectedNode();
+          if (node && node.rules && node.rules[index]) {
+            node.rules[index].field = event.target.value;
+          }
+        }
+
+        function onRuleOperatorChange(index, event) {
+          const node = getSelectedNode();
+          if (node && node.rules && node.rules[index]) {
+            node.rules[index].operator = event.target.value;
+          }
+        }
+
+        function onRuleValueChange(index, event) {
+          const node = getSelectedNode();
+          if (node && node.rules && node.rules[index]) {
+            node.rules[index].value = event.target.value;
           }
         }
 
@@ -1238,24 +1331,27 @@
           }
 
           // 检查孤立节点（没有入线和出线的节点）
-          nodes.value.forEach(node => {
+          for (let i = 0; i < nodes.value.length; i++) {
+            const node = nodes.value[i];
+            if (!node) continue;
+            
             if (node.type === 'start') {
               // 开始节点必须有出线
               const hasOut = connections.value.some(c => c.from === node.id);
               if (!hasOut) {
                 valid = false;
-                messages.push('❌ 开始节点「' + node.name + '」没有输出连线');
+                messages.push('❌ 开始节点「' + (node.name || '未命名') + '」没有输出连线');
               } else {
-                messages.push('✅ 开始节点「' + node.name + '」有输出连线');
+                messages.push('✅ 开始节点「' + (node.name || '未命名') + '」有输出连线');
               }
             } else if (node.type === 'end') {
               // 结束节点必须有入线
               const hasIn = connections.value.some(c => c.to === node.id);
               if (!hasIn) {
                 valid = false;
-                messages.push('❌ 结束节点「' + node.name + '」没有输入连线');
+                messages.push('❌ 结束节点「' + (node.name || '未命名') + '」没有输入连线');
               } else {
-                messages.push('✅ 结束节点「' + node.name + '」有输入连线');
+                messages.push('✅ 结束节点「' + (node.name || '未命名') + '」有输入连线');
               }
             } else {
               // 其他节点必须有入线和出线
@@ -1264,46 +1360,17 @@
               
               if (!hasIn) {
                 valid = false;
-                messages.push('❌ 节点「' + node.name + '」没有输入连线（空挂）');
+                messages.push('❌ 节点「' + (node.name || '未命名') + '」没有输入连线（空挂）');
               }
               if (!hasOut) {
                 valid = false;
-                messages.push('❌ 节点「' + node.name + '」没有输出连线（空挂）');
+                messages.push('❌ 节点「' + (node.name || '未命名') + '」没有输出连线（空挂）');
               }
               if (hasIn && hasOut) {
-                messages.push('✅ 节点「' + node.name + '」连线完整');
+                messages.push('✅ 节点「' + (node.name || '未命名') + '」连线完整');
               }
             }
-          });
-
-          // 检查条件节点
-          const conditionNodes = nodes.value.filter(n => n.type === 'condition');
-          conditionNodes.forEach(node => {
-            const outConnections = connections.value.filter(c => c.from === node.id);
-            if (outConnections.length < 2) {
-              valid = false;
-              messages.push('⚠️ 条件分支「' + node.name + '」建议配置至少 2 条输出连线');
-            } else {
-              messages.push('✅ 条件分支「' + node.name + '」有 ' + outConnections.length + ' 条输出连线');
-            }
-
-            if (node.rules.length === 0) {
-              valid = false;
-              messages.push('❌ 条件分支「' + node.name + '」没有配置规则');
-            } else {
-              messages.push('✅ 条件分支「' + node.name + '」有 ' + node.rules.length + ' 条规则');
-            }
-          });
-
-          // 检查审批节点
-          const approvalNodes = nodes.value.filter(n => n.type === 'approval');
-          approvalNodes.forEach(node => {
-            if (!node.approver) {
-              messages.push('⚠️ 审批节点「' + node.name + '」没有配置审批人');
-            } else {
-              messages.push('✅ 审批节点「' + node.name + '」审批人: ' + node.approver);
-            }
-          });
+          }
 
           validationResult.value = {
             valid: valid,
@@ -1330,41 +1397,46 @@
 
         // 导出JSON
         function exportJSON() {
-          const data = {
-            nodes: nodes.value.map(n => ({
-              id: n.id,
-              type: n.type,
-              name: n.name,
-              x: n.x,
-              y: n.y,
-              approver: n.approver || null,
-              description: n.description || null,
-              rules: n.rules || [],
-              branch1: n.branch1 || '同意',
-              branch2: n.branch2 || '拒绝',
-            })),
-            connections: connections.value.map(c => ({
-              from: c.from,
-              to: c.to,
-              label: c.label || null,
-            }))
-          };
+          try {
+            const data = {
+              nodes: nodes.value.map(n => ({
+                id: n.id || '',
+                type: n.type || '',
+                name: n.name || '',
+                x: n.x || 0,
+                y: n.y || 0,
+                approver: n.approver || null,
+                description: n.description || null,
+                rules: n.rules || [],
+                branch1: n.branch1 || '同意',
+                branch2: n.branch2 || '拒绝',
+              })),
+              connections: connections.value.map(c => ({
+                from: c.from || '',
+                to: c.to || '',
+                label: c.label || null,
+              }))
+            };
 
-          const jsonData = JSON.stringify(data, null, 2);
-          const blob = new Blob([jsonData], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'flow-design.json';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showToastFunc('📥 JSON 已导出');
+            const jsonData = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'flow-design.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToastFunc('📥 JSON 已导出');
+          } catch (e) {
+            console.error('导出失败:', e);
+            showToastFunc('导出失败', 'error');
+          }
         }
 
         onMounted(() => {
-          console.log('Vue 应用已挂载');
+          console.log('流程设计器已挂载');
           showToastFunc('✅ 流程设计器已就绪');
         });
 
@@ -1372,21 +1444,29 @@
           nodes,
           connections,
           selectedNodeId,
-          selectedNode,
           validationResult,
           hasStartNode,
           hasEndNode,
+          hasSelectedNode,
+          isSelectedNodeApproval,
+          isSelectedNodeCondition,
+          selectedNodeTypeDisplay,
+          selectedNodeName,
+          selectedNodeApprover,
+          selectedNodeDescription,
+          selectedNodeBranch1,
+          selectedNodeBranch2,
+          selectedNodeRules,
           formattedJSON,
-          canvasRef,
           drawingConnection,
           tempLinePath,
-          showToast: ref(false),
-          toastMessage: ref(''),
-          toastType: ref('success'),
+          canvasRef,
+          showToast,
+          toastMessage,
+          toastType,
           onNodeDragStart,
           onCanvasDrop,
           selectNode,
-          onNodeChange,
           deleteNode,
           onNodeMouseDown,
           getNodeIcon,
@@ -1396,14 +1476,20 @@
           deleteConnection,
           validateFlow,
           resetFlow,
-          exportJSON
+          exportJSON,
+          onNodeNameInput,
+          onApproverChange,
+          onDescriptionInput,
+          onBranch1Input,
+          onBranch2Input,
+          onRuleFieldChange,
+          onRuleOperatorChange,
+          onRuleValueChange
         };
       }
-    });
+    }).mount('#app');
 
-    console.log('准备挂载 Vue 应用');
-    app.mount('#app');
-    console.log('Vue 应用已成功挂载');
+    console.log('流程设计器已成功挂载');
   </script>
 </body>
 </html>
