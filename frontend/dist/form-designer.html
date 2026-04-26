@@ -404,9 +404,7 @@
               <button class="action-btn" @click.stop="deleteItem(item.id)">×</button>
             </div>
           </div>
-          <div class="form-item-content">
-            {{ getComponentPreview(item) }}
-          </div>
+          <div class="form-item-content" v-html="getComponentPreview(item)"></div>
           <div class="form-item-footer">
             <span v-if="item.required" class="required">必填</span>
             <span v-else class="optional">可选</span>
