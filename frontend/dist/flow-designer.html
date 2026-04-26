@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>审批流程设计</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f7fa;
+      color: #1f2937;
+    }
+    .header {
+      background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header .actions {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: white;
+      color: #0d9488;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .btn-validate {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    .btn-validate:hover {
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 260px 1fr 320px;
+      gap: 20px;
+      height: calc(100vh - 80px);
+      padding: 20px;
+    }
+    .sidebar {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow-y: auto;
+    }
+    .sidebar h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #374151;
+    }
+    .node-tool {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+    .node-tool:hover {
+      background: #f3f4f6;
+      border-color: #06b6d4;
+      transform: translateX(4px);
+    }
+    .node-tool:active {
+      cursor: grabbing;
+    }
+    .node-tool.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .node-tool.disabled:hover {
+      transform: none;
+      border-color: #e5e7eb;
+    }
+    .node-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .node-icon.start {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    .node-icon.approval {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    .node-icon.condition {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+    .node-icon.end {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    .node-tool-info {
+      flex: 1;
+    }
+    .node-tool-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .node-tool-desc {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+    .canvas-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .canvas-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .canvas-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .canvas-hint {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 60px);
+      overflow: auto;
+      background-image: 
+        radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .flow-canvas {
+      position: relative;
+      min-width: 1000px;
+      min-height: 600px;
+    }
+    .flow-node {
+      position: absolute;
+      min-width: 120px;
+      max-width: 200px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: move;
+      user-select: none;
+      z-index: 10;
+      transition: box-shadow 0.2s;
+    }
+    .flow-node:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    .flow-node.selected {
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.3);
+    }
+    .flow-node.dragging {
+      opacity: 0.8;
+      z-index: 100;
+    }
+    .flow-node.start {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    .flow-node.approval {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+    }
+    .flow-node.condition {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+    .flow-node.end {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+    .node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .node-icon-small {
+      font-size: 16px;
+    }
+    .node-delete {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .flow-node:hover .node-delete {
+      opacity: 1;
+    }
+    .node-delete:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .node-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .node-info {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+    .node-ports {
+      position: absolute;
+      top: 50%;
+      left: -8px;
+      right: -8px;
+      transform: translateY(-50%);
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .port {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      border: 2px solid #6b7280;
+      cursor: crosshair;
+      pointer-events: all;
+      transition: all 0.2s;
+    }
+    .port:hover {
+      transform: scale(1.3);
+      border-color: #06b6d4;
+      background: #f0fdfa;
+    }
+    .port-left {
+      margin-left: -8px;
+    }
+    .port-right {
+      margin-right: -8px;
+    }
+    .connections-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .connections-layer svg {
+      width: 100%;
+      height: 100%;
+    }
+    .connection-line {
+      fill: none;
+      stroke: #6b7280;
+      stroke-width: 2;
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+    .connection-line:hover {
+      stroke: #ef4444;
+      stroke-width: 3;
+    }
+    .connection-arrow {
+      fill: #6b7280;
+    }
+    .connection-label {
+      font-size: 11px;
+      fill: #6b7280;
+      font-weight: 500;
+    }
+    .temp-line {
+      fill: none;
+      stroke: #06b6d4;
+      stroke-width: 2;
+      stroke-dasharray: 5, 5;
+    }
+    .properties {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow-y: auto;
+    }
+    .properties h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #374151;
+    }
+    .no-selection {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+    .no-selection .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .property-group {
+      margin-bottom: 24px;
+    }
+    .property-group h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #4b5563;
+    }
+    .property-item {
+      margin-bottom: 16px;
+    }
+    .property-item label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #4b5563;
+    }
+    .property-item input[type="text"],
+    .property-item select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .property-item input[type="text"]:focus,
+    .property-item select:focus {
+      outline: none;
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    }
+    .property-item textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      min-height: 80px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .condition-rules {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .condition-rule {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+    .condition-rule:last-child {
+      margin-bottom: 0;
+    }
+    .condition-rule select,
+    .condition-rule input {
+      width: 100%;
+    }
+    .add-rule-btn {
+      width: 100%;
+      padding: 8px;
+      background: #f3f4f6;
+      border: 1px dashed #d1d5db;
+      border-radius: 6px;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .add-rule-btn:hover {
+      background: #e5e7eb;
+      border-color: #9ca3af;
+    }
+    .remove-rule-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: #fee2e2;
+      border-radius: 4px;
+      color: #ef4444;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .remove-rule-btn:hover {
+      background: #fecaca;
+    }
+    .json-export {
+      margin-top: 24px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .json-export h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #4b5563;
+    }
+    .json-content {
+      background: #1f2937;
+      color: #10b981;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      overflow-x: auto;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .validation-result {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .validation-result.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+    .validation-result.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .validation-result-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .validation-result ul {
+      padding-left: 20px;
+      font-size: 13px;
+    }
+    .validation-result li {
+      margin-bottom: 4px;
+    }
+    .toast {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      padding: 16px 24px;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2000;
+      display: none;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    .toast.active {
+      display: block;
+    }
+    .toast.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+    .toast.error {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .branch-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .branch-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #f9fafb;
+      border-radius: 6px;
+    }
+    .branch-option input {
+      width: 120px;
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .branch-label {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="header">
+      <h1>🔄 审批流程设计</h1>
+      <div class="actions">
+        <button class="btn btn-secondary" v-on:click="resetFlow">重置</button>
+        <button class="btn btn-validate" v-on:click="validateFlow">校验流程</button>
+        <button class="btn btn-primary" v-on:click="exportJSON">导出 JSON</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- 左侧节点工具 -->
+      <div class="sidebar">
+        <h2>📦 节点工具</h2>
+        
+        <div 
+          class="node-tool"
+          draggable="true"
+          v-on:dragstart="onNodeDragStart($event, 'start')"
+          v-bind:class="{ disabled: hasStartNode }"
+        >
+          <div class="node-icon start">▶</div>
+          <div class="node-tool-info">
+            <div class="node-tool-name">开始节点</div>
+            <div class="node-tool-desc">流程的起点</div>
+          </div>
+        </div>
+
+        <div 
+          class="node-tool"
+          draggable="true"
+          v-on:dragstart="onNodeDragStart($event, 'approval')"
+        >
+          <div class="node-icon approval">✓</div>
+          <div class="node-tool-info">
+            <div class="node-tool-name">审批节点</div>
+            <div class="node-tool-desc">审批人/角色审批</div>
+          </div>
+        </div>
+
+        <div 
+          class="node-tool"
+          draggable="true"
+          v-on:dragstart="onNodeDragStart($event, 'condition')"
+        >
+          <div class="node-icon condition">◇</div>
+          <div class="node-tool-info">
+            <div class="node-tool-name">条件分支</div>
+            <div class="node-tool-desc">根据条件走不同分支</div>
+          </div>
+        </div>
+
+        <div 
+          class="node-tool"
+          draggable="true"
+          v-on:dragstart="onNodeDragStart($event, 'end')"
+          v-bind:class="{ disabled: hasEndNode }"
+        >
+          <div class="node-icon end">■</div>
+          <div class="node-tool-info">
+            <div class="node-tool-name">结束节点</div>
+            <div class="node-tool-desc">流程的终点</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <h2>📋 表单字段</h2>
+          <div style="font-size: 13px; color: #6b7280; line-height: 1.6; background: #f9fafb; padding: 12px; border-radius: 6px;">
+            <p><strong>请假天数:</strong> leaveDays</p>
+            <p><strong>请假类型:</strong> leaveType</p>
+            <p><strong>申请人:</strong> applicant</p>
+            <p><strong>部门:</strong> department</p>
+            <p><strong>金额:</strong> amount</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中间画布 -->
+      <div class="canvas-container">
+        <div class="canvas-header">
+          <div class="canvas-title">🎨 流程画布</div>
+          <div class="canvas-hint">拖拽节点到画布 | 从右侧端口拖出连线 | 点击线条删除</div>
+        </div>
+        <div 
+          class="canvas-wrapper"
+          v-on:dragover.prevent
+          v-on:drop="onCanvasDrop"
+        >
+          <div class="flow-canvas" ref="canvasRef">
+            <!-- 连线层 -->
+            <div class="connections-layer">
+              <svg>
+                <defs>
+                  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" class="connection-arrow"/>
+                  </marker>
+                </defs>
+                
+                <!-- 临时连线 -->
+                <path 
+                  v-if="drawingConnection" 
+                  class="temp-line"
+                  v-bind:d="tempLinePath"
+                ></path>
+                
+                <!-- 正式连线 -->
+                <path 
+                  v-for="(connection, index) in connections" 
+                  :key="index"
+                  class="connection-line"
+                  v-bind:d="connection.path"
+                  v-on:click="deleteConnection(index)"
+                  marker-end="url(#arrowhead)"
+                ></path>
+                
+                <!-- 连线标签 -->
+                <text 
+                  v-for="(connection, index) in connections" 
+                  :key="'label-' + index"
+                  class="connection-label"
+                  v-if="connection.label"
+                  v-bind:x="connection.labelX"
+                  v-bind:y="connection.labelY"
+                >{{ connection.label }}</text>
+              </svg>
+            </div>
+
+            <!-- 节点层 -->
+            <div 
+              v-for="(node, index) in nodes" 
+              :key="node.id"
+              class="flow-node"
+              v-bind:class="[node.type, { selected: selectedNodeId === node.id }]"
+              v-bind:style="{ left: node.x + 'px', top: node.y + 'px' }"
+              v-on:mousedown="onNodeMouseDown($event, node)"
+              v-on:click="selectNode(node.id)"
+            >
+              <div class="node-header">
+                <span class="node-icon-small">{{ getNodeIcon(node.type) }}</span>
+                <button class="node-delete" v-on:click.stop="deleteNode(node.id)">×</button>
+              </div>
+              <div class="node-title">{{ node.name }}</div>
+              <div class="node-info" v-if="node.approver">{{ node.approver }}</div>
+              
+              <!-- 端口 -->
+              <div class="node-ports">
+                <div 
+                  class="port port-left" 
+                  v-on:mousedown.stop="onPortMouseDown($event, node, 'left')"
+                ></div>
+                <div 
+                  class="port port-right" 
+                  v-on:mousedown.stop="onPortMouseDown($event, node, 'right')"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧属性设置 -->
+      <div class="properties">
+        <h2>⚙️ 属性设置</h2>
+        
+        <!-- 校验结果 -->
+        <div 
+          v-if="validationResult" 
+          class="validation-result"
+          v-bind:class="validationResult.valid ? 'success' : 'error'"
+        >
+          <div class="validation-result-title">
+            {{ validationResult.valid ? '✅ 校验通过' : '❌ 校验失败' }}
+          </div>
+          <ul>
+            <li v-for="(msg, index) in validationResult.messages" :key="index">{{ msg }}</li>
+          </ul>
+        </div>
+
+        <div v-if="!selectedNode" class="no-selection">
+          <div class="icon">👆</div>
+          <p>请选择一个节点</p>
+        </div>
+        <div v-else>
+          <!-- 基本属性 -->
+          <div class="property-group">
+            <h3>📋 基本属性</h3>
+            <div class="property-item">
+              <label>节点类型</label>
+              <input type="text" v-model="selectedNode.typeDisplay" disabled>
+            </div>
+            <div class="property-item">
+              <label>节点名称</label>
+              <input type="text" v-model="selectedNode.name" v-on:input="onNodeChange">
+            </div>
+          </div>
+
+          <!-- 审批节点属性 -->
+          <div class="property-group" v-if="selectedNode.type === 'approval'">
+            <h3>👤 审批配置</h3>
+            <div class="property-item">
+              <label>审批人</label>
+              <select v-model="selectedNode.approver" v-on:change="onNodeChange">
+                <option value="">请选择审批人</option>
+                <option value="部门经理">部门经理</option>
+                <option value="总经理">总经理</option>
+                <option value="财务总监">财务总监</option>
+                <option value="HR">HR</option>
+                <option value="角色:管理员">角色:管理员</option>
+              </select>
+            </div>
+            <div class="property-item">
+              <label>审批说明</label>
+              <textarea v-model="selectedNode.description" placeholder="请输入审批说明..." v-on:input="onNodeChange"></textarea>
+            </div>
+          </div>
+
+          <!-- 条件分支属性 -->
+          <div class="property-group" v-if="selectedNode.type === 'condition'">
+            <h3>🎯 条件配置</h3>
+            
+            <div class="branch-options">
+              <div class="branch-option">
+                <span class="branch-label">分支 1 名称:</span>
+                <input type="text" v-model="selectedNode.branch1" placeholder="如: 同意" v-on:input="onNodeChange">
+              </div>
+              <div class="branch-option">
+                <span class="branch-label">分支 2 名称:</span>
+                <input type="text" v-model="selectedNode.branch2" placeholder="如: 拒绝" v-on:input="onNodeChange">
+              </div>
+            </div>
+
+            <h3 style="margin-top: 20px;">📋 条件规则 (分支 1)</h3>
+            <div class="condition-rules">
+              <div v-for="(rule, index) in selectedNode.rules" :key="index" class="condition-rule">
+                <select v-model="rule.field" v-on:change="onNodeChange">
+                  <option value="leaveDays">请假天数</option>
+                  <option value="leaveType">请假类型</option>
+                  <option value="department">部门</option>
+                  <option value="amount">金额</option>
+                </select>
+                <select v-model="rule.operator" v-on:change="onNodeChange">
+                  <option value="gt">大于</option>
+                  <option value="gte">大于等于</option>
+                  <option value="lt">小于</option>
+                  <option value="lte">小于等于</option>
+                  <option value="eq">等于</option>
+                  <option value="ne">不等于</option>
+                </select>
+                <input type="text" v-model="rule.value" placeholder="值" v-on:input="onNodeChange">
+                <button class="remove-rule-btn" v-on:click="removeRule(index)">×</button>
+              </div>
+              <button class="add-rule-btn" v-on:click="addRule">+ 添加规则</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- JSON 导出 -->
+        <div class="json-export">
+          <h3>📄 流程 JSON</h3>
+          <div class="json-content">{{ formattedJSON }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" v-bind:class="{ active: showToast, [toastType]: true }">{{ toastMessage }}</div>
+  </div>
+
+  <script>
+    console.log('Vue 加载状态:', typeof Vue !== 'undefined' ? '已加载' : '未加载');
+    
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+    const app = createApp({
+      setup() {
+        console.log('Vue setup 开始执行');
+        
+        // 数据
+        const nodes = ref([]);
+        const connections = ref([]);
+        const selectedNodeId = ref(null);
+        const validationResult = ref(null);
+        
+        // 拖拽状态
+        const draggedNodeType = ref(null);
+        
+        // 连线状态
+        const drawingConnection = ref(false);
+        const connectionStartNode = ref(null);
+        const connectionStartPort = ref('');
+        const tempLinePath = ref('');
+        
+        // 节点拖动状态
+        const draggingNode = ref(null);
+        const dragOffset = ref({ x: 0, y: 0 });
+        
+        // Canvas 引用
+        const canvasRef = ref(null);
+
+        // 表单字段
+        const formFields = [
+          { value: 'leaveDays', label: '请假天数' },
+          { value: 'leaveType', label: '请假类型' },
+          { value: 'department', label: '部门' },
+          { value: 'amount', label: '金额' },
+        ];
+
+        // 计算属性
+        const hasStartNode = computed(() => {
+          return nodes.value.some(n => n.type === 'start');
+        });
+
+        const hasEndNode = computed(() => {
+          return nodes.value.some(n => n.type === 'end');
+        });
+
+        const selectedNode = computed(() => {
+          return nodes.value.find(n => n.id === selectedNodeId.value);
+        });
+
+        const formattedJSON = computed(() => {
+          const data = {
+            nodes: nodes.value.map(n => ({
+              id: n.id,
+              type: n.type,
+              name: n.name,
+              x: n.x,
+              y: n.y,
+              approver: n.approver || null,
+              description: n.description || null,
+              rules: n.rules || [],
+              branch1: n.branch1 || null,
+              branch2: n.branch2 || null,
+            })),
+            connections: connections.value.map(c => ({
+              from: c.from,
+              to: c.to,
+              label: c.label || null,
+            }))
+          };
+          return JSON.stringify(data, null, 2);
+        });
+
+        // 方法
+        function generateId() {
+          return 'node-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function showToastFunc(message, type = 'success') {
+          const toast = {
+            message: message,
+            type: type,
+            show: true
+          };
+          showToast.value = true;
+          toastMessage.value = message;
+          toastType.value = type;
+          setTimeout(() => {
+            showToast.value = false;
+          }, 3000);
+        }
+
+        function getNodeIcon(type) {
+          const icons = {
+            start: '▶',
+            approval: '✓',
+            condition: '◇',
+            end: '■'
+          };
+          return icons[type] || '?';
+        }
+
+        function getTypeDisplay(type) {
+          const displays = {
+            start: '开始节点',
+            approval: '审批节点',
+            condition: '条件分支',
+            end: '结束节点'
+          };
+          return displays[type] || type;
+        }
+
+        // 节点拖拽开始
+        function onNodeDragStart(event, type) {
+          if (type === 'start' && hasStartNode.value) {
+            event.preventDefault();
+            showToastFunc('只能添加一个开始节点', 'error');
+            return;
+          }
+          if (type === 'end' && hasEndNode.value) {
+            event.preventDefault();
+            showToastFunc('只能添加一个结束节点', 'error');
+            return;
+          }
+          draggedNodeType.value = type;
+          event.dataTransfer.effectAllowed = 'copy';
+          event.dataTransfer.setData('nodeType', type);
+        }
+
+        // 画布放置
+        function onCanvasDrop(event) {
+          const type = event.dataTransfer.getData('nodeType') || draggedNodeType.value;
+          if (!type) return;
+
+          const canvas = canvasRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const x = event.clientX - rect.left - 60;
+          const y = event.clientY - rect.top - 40;
+
+          createNode(type, Math.max(50, x), Math.max(50, y));
+        }
+
+        // 创建节点
+        function createNode(type, x, y) {
+          const node = {
+            id: generateId(),
+            type: type,
+            typeDisplay: getTypeDisplay(type),
+            name: getDefaultName(type),
+            x: x,
+            y: y,
+            approver: '',
+            description: '',
+            rules: [],
+            branch1: '同意',
+            branch2: '拒绝',
+          };
+          nodes.value.push(node);
+          selectNode(node.id);
+          showToastFunc('✅ 已添加' + getTypeDisplay(type));
+        }
+
+        function getDefaultName(type) {
+          const defaults = {
+            start: '开始',
+            approval: '审批节点',
+            condition: '条件判断',
+            end: '结束'
+          };
+          return defaults[type] || '节点';
+        }
+
+        // 选择节点
+        function selectNode(id) {
+          selectedNodeId.value = id;
+          validationResult.value = null;
+        }
+
+        // 节点变更
+        function onNodeChange() {
+          // 触发响应式更新
+        }
+
+        // 删除节点
+        function deleteNode(id) {
+          const node = nodes.value.find(n => n.id === id);
+          if (!node) return;
+
+          // 删除相关连线
+          connections.value = connections.value.filter(c => c.from !== id && c.to !== id);
+
+          // 删除节点
+          nodes.value = nodes.value.filter(n => n.id !== id);
+
+          if (selectedNodeId.value === id) {
+            selectedNodeId.value = null;
+          }
+
+          showToastFunc('🗑️ 已删除节点');
+        }
+
+        // 节点鼠标按下
+        function onNodeMouseDown(event, node) {
+          if (event.button !== 0) return;
+          
+          draggingNode.value = node;
+          dragOffset.value = {
+            x: event.clientX - node.x,
+            y: event.clientY - node.y
+          };
+
+          document.addEventListener('mousemove', onNodeMouseMove);
+          document.addEventListener('mouseup', onNodeMouseUp);
+        }
+
+        function onNodeMouseMove(event) {
+          if (!draggingNode.value) return;
+          
+          const canvas = canvasRef.value;
+          const rect = canvas.getBoundingClientRect();
+          
+          draggingNode.value.x = Math.max(10, event.clientX - dragOffset.value.x);
+          draggingNode.value.y = Math.max(10, event.clientY - dragOffset.value.y);
+
+          // 更新相关连线
+          updateConnections();
+        }
+
+        function onNodeMouseUp() {
+          draggingNode.value = null;
+          document.removeEventListener('mousemove', onNodeMouseMove);
+          document.removeEventListener('mouseup', onNodeMouseUp);
+        }
+
+        // 端口鼠标按下 - 开始连线
+        function onPortMouseDown(event, node, port) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (port !== 'right') return; // 只能从右侧开始连线
+
+          drawingConnection.value = true;
+          connectionStartNode.value = node;
+          connectionStartPort.value = port;
+
+          document.addEventListener('mousemove', onConnectionMouseMove);
+          document.addEventListener('mouseup', onConnectionMouseUp);
+        }
+
+        function onConnectionMouseMove(event) {
+          if (!drawingConnection.value || !connectionStartNode.value) return;
+
+          const canvas = canvasRef.value;
+          const rect = canvas.getBoundingClientRect();
+          
+          const startX = connectionStartNode.value.x + 120;
+          const startY = connectionStartNode.value.y + 40;
+          const endX = event.clientX - rect.left;
+          const endY = event.clientY - rect.top;
+
+          tempLinePath.value = createBezierPath(startX, startY, endX, endY);
+        }
+
+        function onConnectionMouseUp(event) {
+          if (!drawingConnection.value) return;
+
+          const targetPort = findPortAt(event.clientX, event.clientY);
+          
+          if (targetPort && targetPort.port === 'left' && targetPort.node.id !== connectionStartNode.value.id) {
+            // 检查是否已存在连线
+            const existing = connections.value.find(c => 
+              c.from === connectionStartNode.value.id && c.to === targetPort.node.id
+            );
+            
+            if (!existing) {
+              createConnection(connectionStartNode.value.id, targetPort.node.id);
+            } else {
+              showToastFunc('连线已存在', 'error');
+            }
+          }
+
+          drawingConnection.value = false;
+          connectionStartNode.value = null;
+          connectionStartPort.value = '';
+          tempLinePath.value = '';
+
+          document.removeEventListener('mousemove', onConnectionMouseMove);
+          document.removeEventListener('mouseup', onConnectionMouseUp);
+        }
+
+        function findPortAt(x, y) {
+          const canvas = canvasRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const canvasX = x - rect.left;
+          const canvasY = y - rect.top;
+
+          for (const node of nodes.value) {
+            // 检查左端口
+            const leftPortX = node.x - 8;
+            const leftPortY = node.y + 40;
+            if (Math.abs(canvasX - leftPortX) < 20 && Math.abs(canvasY - leftPortY) < 20) {
+              return { node: node, port: 'left' };
+            }
+
+            // 检查右端口
+            const rightPortX = node.x + 128;
+            const rightPortY = node.y + 40;
+            if (Math.abs(canvasX - rightPortX) < 20 && Math.abs(canvasY - rightPortY) < 20) {
+              return { node: node, port: 'right' };
+            }
+          }
+
+          return null;
+        }
+
+        // 创建连线
+        function createConnection(fromId, toId) {
+          const connection = {
+            from: fromId,
+            to: toId,
+            label: '',
+            path: ''
+          };
+          connections.value.push(connection);
+          updateConnections();
+          showToastFunc('🔗 已创建连线');
+        }
+
+        // 删除连线
+        function deleteConnection(index) {
+          connections.value.splice(index, 1);
+          showToastFunc('🔗 已删除连线');
+        }
+
+        // 更新所有连线的路径
+        function updateConnections() {
+          connections.value.forEach(conn => {
+            const fromNode = nodes.value.find(n => n.id === conn.from);
+            const toNode = nodes.value.find(n => n.id === conn.to);
+            
+            if (fromNode && toNode) {
+              const startX = fromNode.x + 120;
+              const startY = fromNode.y + 40;
+              const endX = toNode.x - 8;
+              const endY = toNode.y + 40;
+              
+              conn.path = createBezierPath(startX, startY, endX, endY);
+              
+              // 标签位置
+              conn.labelX = (startX + endX) / 2;
+              conn.labelY = (startY + endY) / 2 - 10;
+            }
+          });
+        }
+
+        // 创建贝塞尔曲线路径
+        function createBezierPath(x1, y1, x2, y2) {
+          const dx = x2 - x1;
+          const controlOffset = Math.min(Math.abs(dx) / 2, 100);
+          
+          const cp1x = x1 + controlOffset;
+          const cp1y = y1;
+          const cp2x = x2 - controlOffset;
+          const cp2y = y2;
+          
+          return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+        }
+
+        // 条件规则
+        function addRule() {
+          if (selectedNode.value) {
+            selectedNode.value.rules.push({
+              field: 'leaveDays',
+              operator: 'gt',
+              value: '3'
+            });
+            onNodeChange();
+          }
+        }
+
+        function removeRule(index) {
+          if (selectedNode.value) {
+            selectedNode.value.rules.splice(index, 1);
+            onNodeChange();
+          }
+        }
+
+        // 校验流程
+        function validateFlow() {
+          const messages = [];
+          let valid = true;
+
+          // 检查开始节点
+          if (!hasStartNode.value) {
+            valid = false;
+            messages.push('❌ 缺少开始节点');
+          } else {
+            messages.push('✅ 有开始节点');
+          }
+
+          // 检查结束节点
+          if (!hasEndNode.value) {
+            valid = false;
+            messages.push('❌ 缺少结束节点');
+          } else {
+            messages.push('✅ 有结束节点');
+          }
+
+          // 检查孤立节点（没有入线和出线的节点）
+          nodes.value.forEach(node => {
+            if (node.type === 'start') {
+              // 开始节点必须有出线
+              const hasOut = connections.value.some(c => c.from === node.id);
+              if (!hasOut) {
+                valid = false;
+                messages.push('❌ 开始节点「' + node.name + '」没有输出连线');
+              } else {
+                messages.push('✅ 开始节点「' + node.name + '」有输出连线');
+              }
+            } else if (node.type === 'end') {
+              // 结束节点必须有入线
+              const hasIn = connections.value.some(c => c.to === node.id);
+              if (!hasIn) {
+                valid = false;
+                messages.push('❌ 结束节点「' + node.name + '」没有输入连线');
+              } else {
+                messages.push('✅ 结束节点「' + node.name + '」有输入连线');
+              }
+            } else {
+              // 其他节点必须有入线和出线
+              const hasIn = connections.value.some(c => c.to === node.id);
+              const hasOut = connections.value.some(c => c.from === node.id);
+              
+              if (!hasIn) {
+                valid = false;
+                messages.push('❌ 节点「' + node.name + '」没有输入连线（空挂）');
+              }
+              if (!hasOut) {
+                valid = false;
+                messages.push('❌ 节点「' + node.name + '」没有输出连线（空挂）');
+              }
+              if (hasIn && hasOut) {
+                messages.push('✅ 节点「' + node.name + '」连线完整');
+              }
+            }
+          });
+
+          // 检查条件节点
+          const conditionNodes = nodes.value.filter(n => n.type === 'condition');
+          conditionNodes.forEach(node => {
+            const outConnections = connections.value.filter(c => c.from === node.id);
+            if (outConnections.length < 2) {
+              valid = false;
+              messages.push('⚠️ 条件分支「' + node.name + '」建议配置至少 2 条输出连线');
+            } else {
+              messages.push('✅ 条件分支「' + node.name + '」有 ' + outConnections.length + ' 条输出连线');
+            }
+
+            if (node.rules.length === 0) {
+              valid = false;
+              messages.push('❌ 条件分支「' + node.name + '」没有配置规则');
+            } else {
+              messages.push('✅ 条件分支「' + node.name + '」有 ' + node.rules.length + ' 条规则');
+            }
+          });
+
+          // 检查审批节点
+          const approvalNodes = nodes.value.filter(n => n.type === 'approval');
+          approvalNodes.forEach(node => {
+            if (!node.approver) {
+              messages.push('⚠️ 审批节点「' + node.name + '」没有配置审批人');
+            } else {
+              messages.push('✅ 审批节点「' + node.name + '」审批人: ' + node.approver);
+            }
+          });
+
+          validationResult.value = {
+            valid: valid,
+            messages: messages
+          };
+
+          if (valid) {
+            showToastFunc('✅ 流程校验通过', 'success');
+          } else {
+            showToastFunc('❌ 流程校验失败', 'error');
+          }
+        }
+
+        // 重置流程
+        function resetFlow() {
+          if (confirm('确定要重置流程吗？所有节点和连线将被清除。')) {
+            nodes.value = [];
+            connections.value = [];
+            selectedNodeId.value = null;
+            validationResult.value = null;
+            showToastFunc('🔄 流程已重置');
+          }
+        }
+
+        // 导出JSON
+        function exportJSON() {
+          const data = {
+            nodes: nodes.value.map(n => ({
+              id: n.id,
+              type: n.type,
+              name: n.name,
+              x: n.x,
+              y: n.y,
+              approver: n.approver || null,
+              description: n.description || null,
+              rules: n.rules || [],
+              branch1: n.branch1 || '同意',
+              branch2: n.branch2 || '拒绝',
+            })),
+            connections: connections.value.map(c => ({
+              from: c.from,
+              to: c.to,
+              label: c.label || null,
+            }))
+          };
+
+          const jsonData = JSON.stringify(data, null, 2);
+          const blob = new Blob([jsonData], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'flow-design.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToastFunc('📥 JSON 已导出');
+        }
+
+        onMounted(() => {
+          console.log('Vue 应用已挂载');
+          showToastFunc('✅ 流程设计器已就绪');
+        });
+
+        return {
+          nodes,
+          connections,
+          selectedNodeId,
+          selectedNode,
+          validationResult,
+          hasStartNode,
+          hasEndNode,
+          formattedJSON,
+          canvasRef,
+          drawingConnection,
+          tempLinePath,
+          showToast: ref(false),
+          toastMessage: ref(''),
+          toastType: ref('success'),
+          onNodeDragStart,
+          onCanvasDrop,
+          selectNode,
+          onNodeChange,
+          deleteNode,
+          onNodeMouseDown,
+          getNodeIcon,
+          addRule,
+          removeRule,
+          onPortMouseDown,
+          deleteConnection,
+          validateFlow,
+          resetFlow,
+          exportJSON
+        };
+      }
+    });
+
+    console.log('准备挂载 Vue 应用');
+    app.mount('#app');
+    console.log('Vue 应用已成功挂载');
+  </script>
+</body>
+</html>
