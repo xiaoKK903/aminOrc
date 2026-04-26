@@ -84,7 +84,7 @@ const GatewayConfig = (function() {
       id: generateId(),
       name: `聚合 ${service.name.replace('-', ' ')}`,
       method: ['GET', 'POST'][Math.floor(Math.random() * 2)],
-      path: `/api/aggregation/v1/' + service.name + endpoint.replace('/api/', '').replace('/', '-'),
+      path: `/api/aggregation/v1/${service.name}${endpoint.replace('/api/', '').replace('/', '-')}`,
       description: `聚合调用 ${service.name} 的数据`,
       status: Math.random() > 0.5 ? 'active' : 'draft',
       timeout: 30000,
