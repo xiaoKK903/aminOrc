@@ -678,6 +678,11 @@
             <span class="icon">🎫</span>
             <span class="text">工单分配</span>
           </div>
+          
+          <div class="menu-item" @click="openFormDesigner">
+            <span class="icon">🧠</span>
+            <span class="text">表单设计器</span>
+          </div>
         </div>
       </div>
 
@@ -759,6 +764,11 @@
               <div class="icon credentials" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🎫</div>
               <h3>工单分配</h3>
               <p>按渠道分配工单负责人</p>
+            </div>
+            <div class="dashboard-card" @click="openFormDesigner">
+              <div class="icon credentials" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">🧠</div>
+              <h3>智能表单设计</h3>
+              <p>拖拽式表单设计器</p>
             </div>
           </div>
         </div>
@@ -1492,6 +1502,10 @@
           window.location.href = '/ticket-assign.html';
         }
 
+        function openFormDesigner() {
+          window.location.href = '/form-designer.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1537,7 +1551,8 @@
           deletePerm,
           openCredentialPools,
           openTemporaryAccess,
-          openTicketAssign
+          openTicketAssign,
+          openFormDesigner
         };
       }
     }).mount('#app');
