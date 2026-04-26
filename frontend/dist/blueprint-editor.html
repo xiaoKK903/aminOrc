@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>蓝图逻辑编辑器</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-color: #1a1a2e;
+      --card-bg: #16213e;
+      --text-color: #e5e7eb;
+      --text-secondary: #9ca3af;
+      --border-color: #374151;
+      --accent-color: #06b6d4;
+      --node-bg: #1e293b;
+      --node-header: #334155;
+      --slot-number: #3b82f6;
+      --slot-boolean: #ef4444;
+      --slot-any: #10b981;
+      --error-color: #f59e0b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .header .actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: white; color: #7c3aed; }
+    .btn-primary:hover { transform: translateY(-1px); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.2); color: white; }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.3); }
+    .container {
+      display: grid;
+      grid-template-columns: 260px 1fr 320px;
+      height: calc(100vh - 52px);
+    }
+    .sidebar {
+      background: var(--card-bg);
+      padding: 16px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border-color);
+    }
+    .sidebar h2 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
+    .node-category { margin-bottom: 20px; }
+    .node-category h3 {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .node-list { display: flex; flex-direction: column; gap: 8px; }
+    .node-item {
+      background: var(--node-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      cursor: grab;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .node-item:hover { border-color: var(--accent-color); transform: translateX(4px); }
+    .node-item:active { cursor: grabbing; }
+    .node-icon { font-size: 20px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--node-header); }
+    .node-info { flex: 1; }
+    .node-name { font-size: 13px; font-weight: 500; }
+    .node-desc { font-size: 11px; color: var(--text-secondary); }
+    .type-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .type-number { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .type-boolean { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .type-any { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .canvas-container {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-color);
+    }
+    .canvas-toolbar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .canvas-toolbar > * { pointer-events: auto; }
+    .toolbar-group { display: flex; gap: 8px; }
+    .toolbar-btn {
+      padding: 6px 12px;
+      background: var(--node-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toolbar-btn:hover { background: var(--node-header); border-color: var(--accent-color); }
+    .canvas-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5000px;
+      height: 5000px;
+      background-image: 
+        linear-gradient(rgba(107, 114, 128, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(107, 114, 128, 0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .svg-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5000px;
+      height: 5000px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .svg-layer path, .svg-layer circle { pointer-events: stroke; }
+    .connection-line {
+      fill: none;
+      stroke: var(--accent-color);
+      stroke-width: 2;
+      pointer-events: stroke;
+    }
+    .connection-line:hover { stroke-width: 4; }
+    .connection-line.error { stroke: var(--error-color); stroke-dasharray: 5, 5; }
+    .temp-line {
+      fill: none;
+      stroke: rgba(6, 182, 212, 0.5);
+      stroke-width: 2;
+      stroke-dasharray: 5, 5;
+    }
+    .selection-box {
+      position: absolute;
+      border: 2px dashed var(--accent-color);
+      background: rgba(6, 182, 212, 0.1);
+      pointer-events: none;
+      z-index: 100;
+    }
+    .node {
+      position: absolute;
+      background: var(--node-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      min-width: 160px;
+      user-select: none;
+      z-index: 20;
+      transition: box-shadow 0.2s;
+    }
+    .node:hover { border-color: var(--accent-color); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+    .node.selected { border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2); }
+    .node.macro-node { background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%); border-color: #7c3aed; }
+    .node.macro-node .node-header { background: linear-gradient(135deg, rgba(124, 58, 237, 0.4) 0%, rgba(6, 182, 212, 0.4) 100%); }
+    .node-header {
+      background: var(--node-header);
+      padding: 8px 12px;
+      border-radius: 8px 8px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: move;
+    }
+    .node-header .title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .node-header .actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+    .node:hover .node-header .actions { opacity: 1; }
+    .node-btn {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .node-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-color); }
+    .node-btn.delete:hover { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .node-body { padding: 12px; }
+    .node-inputs, .node-outputs { display: flex; flex-direction: column; gap: 10px; }
+    .slot-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 24px;
+    }
+    .slot-row.inputs { justify-content: flex-start; }
+    .slot-row.outputs { justify-content: flex-end; }
+    .slot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid;
+      cursor: crosshair;
+      transition: all 0.2s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .slot:hover { transform: scale(1.3); }
+    .slot.number { background: var(--slot-number); border-color: #60a5fa; }
+    .slot.boolean { background: var(--slot-boolean); border-color: #f87171; }
+    .slot.any { background: var(--slot-any); border-color: #34d399; }
+    .slot.connected { box-shadow: 0 0 8px currentColor; }
+    .slot-label { font-size: 12px; color: var(--text-secondary); }
+    .slot-value { font-size: 12px; color: var(--accent-color); font-weight: 500; padding: 2px 6px; background: rgba(6, 182, 212, 0.1); border-radius: 4px; }
+    .node-value-input {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text-color);
+      font-size: 12px;
+      width: 80px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .node-value-input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2); }
+    .properties {
+      background: var(--card-bg);
+      padding: 16px;
+      overflow-y: auto;
+      border-left: 1px solid var(--border-color);
+    }
+    .properties h2 { font-size: 13px; font-weight: 600; margin-bottom: 16px; color: var(--text-secondary); }
+    .no-selection { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+    .no-selection .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .property-group { margin-bottom: 20px; }
+    .property-group h3 { font-size: 12px; font-weight: 600; margin-bottom: 12px; color: var(--text-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .property-item { margin-bottom: 14px; }
+    .property-item label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+    .property-item input[type="text"],
+    .property-item input[type="number"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--node-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-color);
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .property-item input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2); }
+    .result-panel {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+    }
+    .result-panel h3 { font-size: 12px; font-weight: 600; margin-bottom: 10px; color: #34d399; }
+    .result-value { font-size: 24px; font-weight: 700; color: #34d399; font-family: 'Courier New', monospace; }
+    .code-panel {
+      margin-top: 20px;
+      padding: 12px;
+      background: var(--node-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+    .code-panel h3 { font-size: 12px; font-weight: 600; margin-bottom: 10px; color: var(--accent-color); }
+    .code-panel pre {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .toast {
+      position: fixed;
+      top: 70px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 2000;
+      display: none;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    .toast.active { display: block; }
+    .toast.success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .toast.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+    .toast.warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .zoom-info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: var(--node-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      z-index: 50;
+    }
+    .context-menu {
+      position: absolute;
+      background: var(--node-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px;
+      z-index: 200;
+      min-width: 140px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    .context-menu-item {
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-color);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .context-menu-item:hover { background: var(--node-header); }
+    .context-menu-item.danger { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="header">
+      <h1>🧩 蓝图逻辑编辑器</h1>
+      <div class="actions">
+        <button class="btn btn-secondary" v-on:click="clearCanvas">清空</button>
+        <button class="btn btn-secondary" v-on:click="loadSample">示例</button>
+        <button class="btn btn-secondary" v-on:click="groupSelected" v-if="selectedNodes.length > 1">打包宏</button>
+        <button class="btn btn-primary" v-on:click="exportCode">导出代码</button>
+        <button class="btn btn-primary" v-on:click="exportAST">导出AST</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="sidebar">
+        <h2>📦 节点库</h2>
+        
+        <div class="node-category">
+          <h3>📝 变量节点</h3>
+          <div class="node-list">
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'variable')">
+              <div class="node-icon" style="background: rgba(59, 130, 246, 0.2);">x</div>
+              <div class="node-info">
+                <div class="node-name">数字变量</div>
+                <div class="node-desc">可编辑的数字值</div>
+              </div>
+              <span class="type-badge type-number">number</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'boolean')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);">✓</div>
+              <div class="node-info">
+                <div class="node-name">布尔变量</div>
+                <div class="node-desc">true/false 值</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-category">
+          <h3>➕ 计算节点</h3>
+          <div class="node-list">
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'add')">
+              <div class="node-icon" style="background: rgba(16, 185, 129, 0.2);">+</div>
+              <div class="node-info">
+                <div class="node-name">加法</div>
+                <div class="node-desc">a + b</div>
+              </div>
+              <span class="type-badge type-number">number</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'subtract')">
+              <div class="node-icon" style="background: rgba(16, 185, 129, 0.2);">−</div>
+              <div class="node-info">
+                <div class="node-name">减法</div>
+                <div class="node-desc">a - b</div>
+              </div>
+              <span class="type-badge type-number">number</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'multiply')">
+              <div class="node-icon" style="background: rgba(16, 185, 129, 0.2);">×</div>
+              <div class="node-info">
+                <div class="node-name">乘法</div>
+                <div class="node-desc">a × b</div>
+              </div>
+              <span class="type-badge type-number">number</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'divide')">
+              <div class="node-icon" style="background: rgba(16, 185, 129, 0.2);">÷</div>
+              <div class="node-info">
+                <div class="node-name">除法</div>
+                <div class="node-desc">a ÷ b</div>
+              </div>
+              <span class="type-badge type-number">number</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-category">
+          <h3>⚖️ 比较节点</h3>
+          <div class="node-list">
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'greaterThan')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);">></div>
+              <div class="node-info">
+                <div class="node-name">大于</div>
+                <div class="node-desc">a > b</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'lessThan')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);"><</div>
+              <div class="node-info">
+                <div class="node-name">小于</div>
+                <div class="node-desc">a < b</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'equal')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);">=</div>
+              <div class="node-info">
+                <div class="node-name">等于</div>
+                <div class="node-desc">a === b</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-category">
+          <h3>🔗 逻辑节点</h3>
+          <div class="node-list">
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'and')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);">&&</div>
+              <div class="node-info">
+                <div class="node-name">与</div>
+                <div class="node-desc">a && b</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'or')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);">||</div>
+              <div class="node-info">
+                <div class="node-name">或</div>
+                <div class="node-desc">a || b</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'not')">
+              <div class="node-icon" style="background: rgba(239, 68, 68, 0.2);">!</div>
+              <div class="node-info">
+                <div class="node-name">非</div>
+                <div class="node-desc">!a</div>
+              </div>
+              <span class="type-badge type-boolean">boolean</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="node-category">
+          <h3>📊 输出节点</h3>
+          <div class="node-list">
+            <div class="node-item" draggable="true" v-on:dragstart="onNodeDragStart($event, 'output')">
+              <div class="node-icon" style="background: rgba(16, 185, 129, 0.2);">▶</div>
+              <div class="node-info">
+                <div class="node-name">结果输出</div>
+                <div class="node-desc">显示计算结果</div>
+              </div>
+              <span class="type-badge type-any">any</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-container" ref="canvasContainerRef" 
+        v-on:dragover.prevent 
+        v-on:drop="onCanvasDrop"
+        v-on:mousedown="onCanvasMouseDown"
+        v-on:contextmenu.prevent="onCanvasRightClick"
+      >
+        <div class="canvas-toolbar">
+          <div class="toolbar-group">
+            <button class="toolbar-btn" v-on:click="zoomIn">+ 放大</button>
+            <button class="toolbar-btn" v-on:click="zoomOut">- 缩小</button>
+            <button class="toolbar-btn" v-on:click="resetZoom">重置</button>
+          </div>
+          <div class="toolbar-group">
+            <button class="toolbar-btn" v-on:click="deleteSelected">删除选中</button>
+          </div>
+        </div>
+
+        <div class="canvas-grid" ref="canvasGridRef" v-bind:style="gridTransform">
+          <svg class="svg-layer" ref="svgRef">
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#06b6d4" />
+              </marker>
+            </defs>
+            
+            <path v-if="tempConnection" class="temp-line" 
+              :d="getTempConnectionPath()" />
+            
+            <path v-for="conn in connections" :key="conn.id" 
+              class="connection-line"
+              :class="{ error: conn.hasError }"
+              :d="getConnectionPath(conn)"
+              v-on:click="onConnectionClick(conn)"
+              style="pointer-events: stroke;" />
+          </svg>
+
+          <div v-for="node in nodes" :key="node.id"
+            class="node"
+            :class="{ selected: selectedNodes.includes(node.id), 'macro-node': node.type === 'macro' }"
+            :style="getNodeStyle(node)"
+            v-on:mousedown="onNodeMouseDown($event, node)"
+            v-on:contextmenu.prevent="onNodeRightClick($event, node)"
+          >
+            <div class="node-header" v-on:mousedown.stop>
+              <span class="title">
+                <span>{{ getNodeIcon(node.type) }}</span>
+                <span>{{ getNodeTitle(node) }}</span>
+              </span>
+              <div class="actions">
+                <button class="node-btn" v-on:click.stop="duplicateNode(node)" title="复制">⧉</button>
+                <button class="node-btn delete" v-on:click.stop="deleteNode(node.id)" title="删除">×</button>
+              </div>
+            </div>
+            <div class="node-body">
+              <div class="node-inputs" v-if="getInputSlots(node).length > 0">
+                <div v-for="slot in getInputSlots(node)" :key="slot.id" class="slot-row inputs">
+                  <div class="slot" 
+                    :class="[slot.type, { connected: isSlotConnected(slot.id) }]"
+                    :title="slot.type"
+                    v-on:mousedown.stop="onSlotMouseDown($event, slot, 'input')"></div>
+                  <span class="slot-label">{{ slot.label }}</span>
+                  <span v-if="!isSlotConnected(slot.id) && (node.type === 'variable' || node.type === 'add' || node.type === 'subtract' || node.type === 'multiply' || node.type === 'divide' || node.type === 'greaterThan' || node.type === 'lessThan' || node.type === 'equal')" class="slot-value">
+                    <input v-if="node.type === 'variable'" type="number" 
+                      class="node-value-input" 
+                      v-model.number="node.value"
+                      v-on:input="onNodeValueChange"
+                      v-on:click.stop>
+                  </span>
+                </div>
+              </div>
+              
+              <div v-if="node.type === 'boolean'" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                <span class="slot-label">值: </span>
+                <button class="toolbar-btn" 
+                  :style="{ background: node.value ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: node.value ? '#34d399' : '#f87171', border: 'none', padding: '4px 12px' }"
+                  v-on:click.stop="toggleBooleanValue(node)">
+                  {{ node.value ? 'true' : 'false' }}
+                </button>
+              </div>
+
+              <div class="node-outputs" v-if="getOutputSlots(node).length > 0" style="margin-top: 10px;">
+                <div v-for="slot in getOutputSlots(node)" :key="slot.id" class="slot-row outputs">
+                  <span class="slot-value">{{ formatValue(getSlotValue(node, slot)) }}</span>
+                  <span class="slot-label">{{ slot.label }}</span>
+                  <div class="slot" 
+                    :class="[slot.type, { connected: isSlotConnected(slot.id) }]"
+                    :title="slot.type"
+                    v-on:mousedown.stop="onSlotMouseDown($event, slot, 'output')"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="isSelecting" class="selection-box" :style="selectionBoxStyle"></div>
+        <div v-if="contextMenu.visible" class="context-menu" :style="contextMenu.style">
+          <div class="context-menu-item" v-on:click="duplicateSelected">
+            <span>⧉</span>
+            <span>复制选中</span>
+          </div>
+          <div class="context-menu-item" v-on:click="groupSelected" v-if="selectedNodes.length > 1">
+            <span>📦</span>
+            <span>打包成宏节点</span>
+          </div>
+          <div class="context-menu-item danger" v-on:click="deleteSelected">
+            <span>🗑️</span>
+            <span>删除选中</span>
+          </div>
+        </div>
+        <div class="zoom-info">缩放: {{ Math.round(zoom * 100) }}%</div>
+      </div>
+
+      <div class="properties">
+        <h2>⚙️ 属性面板</h2>
+        
+        <div v-if="selectedNodes.length === 0" class="no-selection">
+          <div class="icon">👆</div>
+          <p>选择一个节点</p>
+          <p style="font-size: 12px; margin-top: 8px; color: var(--text-secondary);">
+            拖入节点，连接插槽，<br>实时查看计算结果
+          </p>
+        </div>
+
+        <div v-else-if="selectedNodes.length > 1">
+          <div class="property-group">
+            <h3>📋 多选模式</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+              已选中 <strong style="color: var(--accent-color);">{{ selectedNodes.length }}</strong> 个节点
+            </p>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+              <button class="btn btn-secondary" style="flex: 1; font-size: 12px;" v-on:click="groupSelected" v-if="selectedNodes.length > 1">
+                📦 打包宏
+              </button>
+              <button class="btn btn-secondary" style="flex: 1; font-size: 12px;" v-on:click="duplicateSelected">
+                ⧉ 复制
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="selectedNode">
+          <div class="property-group">
+            <h3>📋 基本属性</h3>
+            <div class="property-item">
+              <label>节点类型</label>
+              <input type="text" :value="getNodeTypeName(selectedNode.type)" readonly style="background: var(--node-bg);">
+            </div>
+            <div class="property-item" v-if="selectedNode.type === 'variable'">
+              <label>变量值</label>
+              <input type="number" v-model.number="selectedNode.value" v-on:input="onNodeValueChange">
+            </div>
+            <div class="property-item" v-if="selectedNode.type === 'boolean'">
+              <label>布尔值</label>
+              <button class="toolbar-btn" 
+                :style="{ width: '100%', background: selectedNode.value ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: selectedNode.value ? '#34d399' : '#f87171', border: 'none', padding: '10px' }"
+                v-on:click="toggleBooleanValue(selectedNode)">
+                {{ selectedNode.value ? 'true' : 'false' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="property-group">
+            <h3>📊 插槽信息</h3>
+            <div style="font-size: 12px;">
+              <p style="margin-bottom: 8px; color: var(--text-secondary);">
+                输入插槽: {{ getInputSlots(selectedNode).length }}
+              </p>
+              <p style="margin-bottom: 8px; color: var(--text-secondary);">
+                输出插槽: {{ getOutputSlots(selectedNode).length }}
+              </p>
+            </div>
+          </div>
+
+          <div class="result-panel" v-if="selectedNode.type === 'output'">
+            <h3>🎯 计算结果</h3>
+            <div class="result-value">{{ formatValue(getOutputResult()) }}</div>
+          </div>
+        </div>
+
+        <div class="code-panel">
+          <h3>📄 实时代码预览</h3>
+          <pre>{{ generatedCode }}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" :class="{ active: showToast, [toastType]: true }">{{ toastMessage }}</div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+
+    const nodeDefinitions = {
+      variable: {
+        title: '数字变量',
+        icon: 'x',
+        inputs: [],
+        outputs: [{ id: 'out', label: '输出', type: 'number' }]
+      },
+      boolean: {
+        title: '布尔变量',
+        icon: '✓',
+        inputs: [],
+        outputs: [{ id: 'out', label: '输出', type: 'boolean' }]
+      },
+      add: {
+        title: '加法',
+        icon: '+',
+        inputs: [
+          { id: 'a', label: 'A', type: 'number' },
+          { id: 'b', label: 'B', type: 'number' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'number' }]
+      },
+      subtract: {
+        title: '减法',
+        icon: '−',
+        inputs: [
+          { id: 'a', label: 'A', type: 'number' },
+          { id: 'b', label: 'B', type: 'number' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'number' }]
+      },
+      multiply: {
+        title: '乘法',
+        icon: '×',
+        inputs: [
+          { id: 'a', label: 'A', type: 'number' },
+          { id: 'b', label: 'B', type: 'number' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'number' }]
+      },
+      divide: {
+        title: '除法',
+        icon: '÷',
+        inputs: [
+          { id: 'a', label: 'A', type: 'number' },
+          { id: 'b', label: 'B', type: 'number' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'number' }]
+      },
+      greaterThan: {
+        title: '大于',
+        icon: '>',
+        inputs: [
+          { id: 'a', label: 'A', type: 'number' },
+          { id: 'b', label: 'B', type: 'number' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'boolean' }]
+      },
+      lessThan: {
+        title: '小于',
+        icon: '<',
+        inputs: [
+          { id: 'a', label: 'A', type: 'number' },
+          { id: 'b', label: 'B', type: 'number' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'boolean' }]
+      },
+      equal: {
+        title: '等于',
+        icon: '=',
+        inputs: [
+          { id: 'a', label: 'A', type: 'any' },
+          { id: 'b', label: 'B', type: 'any' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'boolean' }]
+      },
+      and: {
+        title: '与',
+        icon: '&&',
+        inputs: [
+          { id: 'a', label: 'A', type: 'boolean' },
+          { id: 'b', label: 'B', type: 'boolean' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'boolean' }]
+      },
+      or: {
+        title: '或',
+        icon: '||',
+        inputs: [
+          { id: 'a', label: 'A', type: 'boolean' },
+          { id: 'b', label: 'B', type: 'boolean' }
+        ],
+        outputs: [{ id: 'result', label: '结果', type: 'boolean' }]
+      },
+      not: {
+        title: '非',
+        icon: '!',
+        inputs: [{ id: 'a', label: 'A', type: 'boolean' }],
+        outputs: [{ id: 'result', label: '结果', type: 'boolean' }]
+      },
+      output: {
+        title: '结果输出',
+        icon: '▶',
+        inputs: [{ id: 'in', label: '输入', type: 'any' }],
+        outputs: []
+      }
+    };
+
+    createApp({
+      setup() {
+        const nodes = ref([]);
+        const connections = ref([]);
+        const selectedNodes = ref([]);
+        const zoom = ref(1);
+        const panOffset = ref({ x: 0, y: 0 });
+        
+        const canvasContainerRef = ref(null);
+        const canvasGridRef = ref(null);
+        const svgRef = ref(null);
+        
+        const dragType = ref(null);
+        let dragNodeId = null;
+        let dragOffset = { x: 0, y: 0 };
+        
+        const isSelecting = ref(false);
+        const selectionStart = ref({ x: 0, y: 0 });
+        const selectionEnd = ref({ x: 0, y: 0 });
+        
+        const contextMenu = ref({
+          visible: false,
+          style: {},
+          targetNode: null
+        });
+        
+        const tempConnection = ref(null);
+        let connectionStartSlot = null;
+        let connectionStartType = null;
+        
+        const showToast = ref(false);
+        const toastMessage = ref('');
+        const toastType = ref('success');
+
+        const generatedCode = computed(() => {
+          return generateCode();
+        });
+
+        const selectedNode = computed(() => {
+          if (selectedNodes.value.length !== 1) return null;
+          return nodes.value.find(n => n.id === selectedNodes.value[0]);
+        });
+
+        const gridTransform = computed(() => {
+          return {
+            transform: `translate(${panOffset.value.x}px, ${panOffset.value.y}px) scale(${zoom.value})`,
+            transformOrigin: '0 0'
+          };
+        });
+
+        const selectionBoxStyle = computed(() => {
+          const x = Math.min(selectionStart.value.x, selectionEnd.value.x);
+          const y = Math.min(selectionStart.value.y, selectionEnd.value.y);
+          const w = Math.abs(selectionEnd.value.x - selectionStart.value.x);
+          const h = Math.abs(selectionEnd.value.y - selectionStart.value.y);
+          return {
+            left: x + 'px',
+            top: y + 'px',
+            width: w + 'px',
+            height: h + 'px'
+          };
+        });
+
+        function showToastFunc(message, type = 'success') {
+          toastMessage.value = message;
+          toastType.value = type;
+          showToast.value = true;
+          setTimeout(() => { showToast.value = false; }, 2500);
+        }
+
+        function generateId() {
+          return 'node-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function generateSlotId(nodeId, slotName) {
+          return nodeId + '-' + slotName;
+        }
+
+        function getNodeTitle(node) {
+          if (node.type === 'macro') {
+            return node.macroName || '宏节点';
+          }
+          return nodeDefinitions[node.type]?.title || '节点';
+        }
+
+        function getNodeIcon(type) {
+          if (type === 'macro') return '📦';
+          return nodeDefinitions[type]?.icon || '●';
+        }
+
+        function getNodeTypeName(type) {
+          const names = {
+            variable: '数字变量',
+            boolean: '布尔变量',
+            add: '加法运算',
+            subtract: '减法运算',
+            multiply: '乘法运算',
+            divide: '除法运算',
+            greaterThan: '大于比较',
+            lessThan: '小于比较',
+            equal: '等于比较',
+            and: '逻辑与',
+            or: '逻辑或',
+            not: '逻辑非',
+            output: '结果输出',
+            macro: '宏节点'
+          };
+          return names[type] || type;
+        }
+
+        function getInputSlots(node) {
+          if (node.type === 'macro') {
+            return node.macroInputs || [];
+          }
+          return nodeDefinitions[node.type]?.inputs.map(s => ({
+            ...s,
+            id: generateSlotId(node.id, s.id)
+          })) || [];
+        }
+
+        function getOutputSlots(node) {
+          if (node.type === 'macro') {
+            return node.macroOutputs || [];
+          }
+          return nodeDefinitions[node.type]?.outputs.map(s => ({
+            ...s,
+            id: generateSlotId(node.id, s.id)
+          })) || [];
+        }
+
+        function getSlotDefaultValue(node, slot) {
+          const slotName = slot.id.split('-').pop();
+          if (node.type === 'variable') return node.value;
+          if (node.type === 'boolean') return node.value;
+          
+          const defaults = {
+            add: { a: 0, b: 0 },
+            subtract: { a: 0, b: 0 },
+            multiply: { a: 0, b: 0 },
+            divide: { a: 0, b: 1 },
+            greaterThan: { a: 0, b: 0 },
+            lessThan: { a: 0, b: 0 },
+            equal: { a: 0, b: 0 },
+            and: { a: true, b: true },
+            or: { a: false, b: false },
+            not: { a: false }
+          };
+          return defaults[node.type]?.[slotName] ?? 0;
+        }
+
+        function isSlotConnected(slotId) {
+          return connections.value.some(c => c.fromSlot === slotId || c.toSlot === slotId);
+        }
+
+        function getSlotValue(node, slot) {
+          return evaluateNode(node);
+        }
+
+        function getConnectionPath(conn) {
+          const fromNode = nodes.value.find(n => conn.fromSlot.startsWith(n.id));
+          const toNode = nodes.value.find(n => conn.toSlot.startsWith(n.id));
+          
+          if (!fromNode || !toNode) return '';
+          
+          const outputSlots = getOutputSlots(fromNode);
+          const inputSlots = getInputSlots(toNode);
+          
+          const outputIndex = outputSlots.findIndex(s => s.id === conn.fromSlot);
+          const inputIndex = inputSlots.findIndex(s => s.id === conn.toSlot);
+          
+          const x1 = fromNode.x + fromNode.width;
+          const y1 = fromNode.y + 60 + outputIndex * 34;
+          
+          const x2 = toNode.x;
+          const y2 = toNode.y + 60 + inputIndex * 34;
+          
+          const dx = Math.abs(x2 - x1);
+          const controlOffset = Math.max(50, dx * 0.4);
+          
+          return `M ${x1} ${y1} C ${x1 + controlOffset} ${y1}, ${x2 - controlOffset} ${y2}, ${x2} ${y2}`;
+        }
+
+        function getTempConnectionPath() {
+          if (!tempConnection.value) return '';
+          
+          const { startPos, endPos, startSlotType } = tempConnection.value;
+          
+          if (startSlotType === 'output') {
+            const dx = Math.abs(endPos.x - startPos.x);
+            const controlOffset = Math.max(50, dx * 0.4);
+            return `M ${startPos.x} ${startPos.y} C ${startPos.x + controlOffset} ${startPos.y}, ${endPos.x - controlOffset} ${endPos.y}, ${endPos.x} ${endPos.y}`;
+          } else {
+            const dx = Math.abs(endPos.x - startPos.x);
+            const controlOffset = Math.max(50, dx * 0.4);
+            return `M ${endPos.x} ${endPos.y} C ${endPos.x + controlOffset} ${endPos.y}, ${startPos.x - controlOffset} ${startPos.y}, ${startPos.x} ${startPos.y}`;
+          }
+        }
+
+        function evaluateNode(node) {
+          if (node.type === 'variable') return node.value ?? 0;
+          if (node.type === 'boolean') return node.value ?? false;
+          
+          const inputValues = {};
+          const inputSlots = getInputSlots(node);
+          
+          for (const slot of inputSlots) {
+            const conn = connections.value.find(c => c.toSlot === slot.id);
+            if (conn) {
+              const fromNodeId = conn.fromSlot.split('-').slice(0, -1).join('-');
+              const fromNode = nodes.value.find(n => n.id === fromNodeId);
+              if (fromNode) {
+                const slotName = slot.id.split('-').pop();
+                inputValues[slotName] = evaluateNode(fromNode);
+              }
+            } else {
+              const slotName = slot.id.split('-').pop();
+              inputValues[slotName] = getSlotDefaultValue(node, slot);
+            }
+          }
+          
+          switch (node.type) {
+            case 'add': return inputValues.a + inputValues.b;
+            case 'subtract': return inputValues.a - inputValues.b;
+            case 'multiply': return inputValues.a * inputValues.b;
+            case 'divide': return inputValues.b !== 0 ? inputValues.a / inputValues.b : NaN;
+            case 'greaterThan': return inputValues.a > inputValues.b;
+            case 'lessThan': return inputValues.a < inputValues.b;
+            case 'equal': return inputValues.a === inputValues.b;
+            case 'and': return inputValues.a && inputValues.b;
+            case 'or': return inputValues.a || inputValues.b;
+            case 'not': return !inputValues.a;
+            case 'output': return inputValues.in;
+            default: return null;
+          }
+        }
+
+        function getOutputResult() {
+          const outputNodes = nodes.value.filter(n => n.type === 'output');
+          if (outputNodes.length === 0) return '-';
+          return evaluateNode(outputNodes[0]);
+        }
+
+        function formatValue(val) {
+          if (val === null || val === undefined) return '-';
+          if (typeof val === 'boolean') return val.toString();
+          if (typeof val === 'number') {
+            if (Number.isNaN(val)) return 'NaN';
+            if (!Number.isFinite(val)) return val > 0 ? '∞' : '-∞';
+            return Number.isInteger(val) ? val.toString() : val.toFixed(2);
+          }
+          return String(val);
+        }
+
+        function generateCode() {
+          const outputNodes = nodes.value.filter(n => n.type === 'output');
+          if (outputNodes.length === 0) return '// 请添加输出节点';
+          
+          const vars = [];
+          const codeLines = [];
+          const generated = new Set();
+          
+          function generateNodeCode(node) {
+            if (generated.has(node.id)) return;
+            generated.add(node.id);
+            
+            if (node.type === 'variable') {
+              const varName = `var_${node.id.replace(/-/g, '_')}`;
+              vars.push({ name: varName, value: node.value });
+              node._codeVar = varName;
+              return;
+            }
+            
+            if (node.type === 'boolean') {
+              const varName = `bool_${node.id.replace(/-/g, '_')}`;
+              vars.push({ name: varName, value: node.value });
+              node._codeVar = varName;
+              return;
+            }
+            
+            const inputSlots = getInputSlots(node);
+            const inputs = {};
+            
+            for (const slot of inputSlots) {
+              const conn = connections.value.find(c => c.toSlot === slot.id);
+              const slotName = slot.id.split('-').pop();
+              
+              if (conn) {
+                const fromNodeId = conn.fromSlot.split('-').slice(0, -1).join('-');
+                const fromNode = nodes.value.find(n => n.id === fromNodeId);
+                if (fromNode) {
+                  generateNodeCode(fromNode);
+                  inputs[slotName] = fromNode._codeVar;
+                }
+              } else {
+                inputs[slotName] = formatValue(getSlotDefaultValue(node, slot));
+              }
+            }
+            
+            const varName = `result_${node.id.replace(/-/g, '_')}`;
+            
+            switch (node.type) {
+              case 'add':
+                codeLines.push(`const ${varName} = ${inputs.a} + ${inputs.b};`);
+                break;
+              case 'subtract':
+                codeLines.push(`const ${varName} = ${inputs.a} - ${inputs.b};`);
+                break;
+              case 'multiply':
+                codeLines.push(`const ${varName} = ${inputs.a} * ${inputs.b};`);
+                break;
+              case 'divide':
+                codeLines.push(`const ${varName} = ${inputs.a} / ${inputs.b};`);
+                break;
+              case 'greaterThan':
+                codeLines.push(`const ${varName} = ${inputs.a} > ${inputs.b};`);
+                break;
+              case 'lessThan':
+                codeLines.push(`const ${varName} = ${inputs.a} < ${inputs.b};`);
+                break;
+              case 'equal':
+                codeLines.push(`const ${varName} = ${inputs.a} === ${inputs.b};`);
+                break;
+              case 'and':
+                codeLines.push(`const ${varName} = ${inputs.a} && ${inputs.b};`);
+                break;
+              case 'or':
+                codeLines.push(`const ${varName} = ${inputs.a} || ${inputs.b};`);
+                break;
+              case 'not':
+                codeLines.push(`const ${varName} = !${inputs.a};`);
+                break;
+            }
+            
+            node._codeVar = varName;
+          }
+          
+          for (const outputNode of outputNodes) {
+            const conn = connections.value.find(c => c.toSlot.startsWith(outputNode.id));
+            if (conn) {
+              const fromNodeId = conn.fromSlot.split('-').slice(0, -1).join('-');
+              const fromNode = nodes.value.find(n => n.id === fromNodeId);
+              if (fromNode) {
+                generateNodeCode(fromNode);
+                codeLines.push(`\n// 输出结果: ${fromNode._codeVar}`);
+                codeLines.push(`console.log('Result:', ${fromNode._codeVar});`);
+                codeLines.push(`return ${fromNode._codeVar};`);
+              }
+            }
+          }
+          
+          let result = '// 自动生成的代码\n\n';
+          
+          if (vars.length > 0) {
+            result += '// 输入变量\n';
+            vars.forEach(v => {
+              result += `let ${v.name} = ${typeof v.value === 'boolean' ? v.value : v.value};\n`;
+            });
+            result += '\n';
+          }
+          
+          if (codeLines.length > 0) {
+            result += '// 计算逻辑\n';
+            result += codeLines.join('\n');
+          } else {
+            result += '// 暂无计算逻辑';
+          }
+          
+          return result;
+        }
+
+        function generateAST() {
+          const ast = {
+            type: 'Program',
+            body: [],
+            sourceType: 'module'
+          };
+          
+          const varNodes = nodes.value.filter(n => n.type === 'variable' || n.type === 'boolean');
+          
+          for (const node of varNodes) {
+            ast.body.push({
+              type: 'VariableDeclaration',
+              declarations: [{
+                type: 'VariableDeclarator',
+                id: { type: 'Identifier', name: node.id.replace(/-/g, '_') },
+                init: { type: 'Literal', value: node.value }
+              }],
+              kind: 'let'
+            });
+          }
+          
+          return ast;
+        }
+
+        function createNode(type, x, y) {
+          const node = {
+            id: generateId(),
+            type: type,
+            x: x,
+            y: y,
+            width: 180,
+            height: type === 'not' ? 100 : 130,
+            value: type === 'variable' ? 0 : (type === 'boolean' ? false : null)
+          };
+          
+          nodes.value.push(node);
+          selectNode(node.id);
+          
+          return node;
+        }
+
+        function deleteNode(id) {
+          nodes.value = nodes.value.filter(n => n.id !== id);
+          connections.value = connections.value.filter(c => 
+            !c.fromSlot.startsWith(id) && !c.toSlot.startsWith(id)
+          );
+          selectedNodes.value = selectedNodes.value.filter(nid => nid !== id);
+          showToastFunc('已删除节点');
+        }
+
+        function duplicateNode(node) {
+          const newNode = createNode(node.type, node.x + 30, node.y + 30);
+          newNode.value = node.value;
+          showToastFunc('已复制节点');
+        }
+
+        function selectNode(id, addToSelection = false) {
+          if (addToSelection) {
+            if (!selectedNodes.value.includes(id)) {
+              selectedNodes.value.push(id);
+            } else {
+              selectedNodes.value = selectedNodes.value.filter(nid => nid !== id);
+            }
+          } else {
+            selectedNodes.value = [id];
+          }
+          hideContextMenu();
+        }
+
+        function clearSelection() {
+          selectedNodes.value = [];
+          hideContextMenu();
+        }
+
+        function deleteSelected() {
+          selectedNodes.value.forEach(id => {
+            nodes.value = nodes.value.filter(n => n.id !== id);
+            connections.value = connections.value.filter(c => 
+              !c.fromSlot.startsWith(id) && !c.toSlot.startsWith(id)
+            );
+          });
+          selectedNodes.value = [];
+          hideContextMenu();
+          showToastFunc('已删除选中节点');
+        }
+
+        function duplicateSelected() {
+          if (selectedNodes.value.length === 0) return;
+          
+          const selectedNodeObjs = selectedNodes.value.map(id => nodes.value.find(n => n.id === id)).filter(Boolean);
+          
+          selectedNodeObjs.forEach(node => {
+            const newNode = createNode(node.type, node.x + 40, node.y + 40);
+            newNode.value = node.value;
+          });
+          
+          hideContextMenu();
+          showToastFunc(`已复制 ${selectedNodes.value.length} 个节点`);
+        }
+
+        function groupSelected() {
+          if (selectedNodes.value.length < 2) {
+            showToastFunc('请选择至少2个节点进行打包', 'warning');
+            return;
+          }
+          
+          const selectedNodeObjs = selectedNodes.value.map(id => nodes.value.find(n => n.id === id)).filter(Boolean);
+          
+          const minX = Math.min(...selectedNodeObjs.map(n => n.x));
+          const minY = Math.min(...selectedNodeObjs.map(n => n.y));
+          const maxX = Math.max(...selectedNodeObjs.map(n => n.x + n.width));
+          const maxY = Math.max(...selectedNodeObjs.map(n => n.y + n.height));
+          
+          const macroId = generateId();
+          const macroNode = {
+            id: macroId,
+            type: 'macro',
+            x: minX,
+            y: minY,
+            width: Math.max(200, maxX - minX),
+            height: Math.max(120, maxY - minY + 40),
+            value: null,
+            macroName: '宏节点',
+            macroInputs: [],
+            macroOutputs: []
+          };
+          
+          selectedNodes.value.forEach(id => {
+            nodes.value = nodes.value.filter(n => n.id !== id);
+          });
+          
+          nodes.value.push(macroNode);
+          
+          selectedNodes.value = [macroId];
+          hideContextMenu();
+          
+          showToastFunc(`已打包 ${selectedNodeObjs.length} 个节点为宏节点`);
+        }
+
+        function onNodeDragStart(event, type) {
+          dragType.value = type;
+          event.dataTransfer.setData('nodeType', type);
+        }
+
+        function onCanvasDrop(event) {
+          const type = event.dataTransfer.getData('nodeType') || dragType.value;
+          if (!type) return;
+          
+          const canvas = canvasGridRef.value;
+          if (!canvas) return;
+          
+          const rect = canvas.getBoundingClientRect();
+          let x = (event.clientX - rect.left - panOffset.value.x) / zoom.value;
+          let y = (event.clientY - rect.top - panOffset.value.y) / zoom.value;
+          
+          x = Math.round(x / 20) * 20;
+          y = Math.round(y / 20) * 20;
+          
+          createNode(type, Math.max(20, x), Math.max(20, y));
+          showToastFunc(`已添加${getNodeTypeName(type)}`);
+        }
+
+        function getNodeStyle(node) {
+          return {
+            left: node.x + 'px',
+            top: node.y + 'px',
+            width: node.width + 'px',
+            height: node.height + 'px'
+          };
+        }
+
+        function onNodeMouseDown(event, node) {
+          if (event.button !== 0) return;
+          
+          const isMultiSelect = event.ctrlKey || event.metaKey;
+          selectNode(node.id, isMultiSelect);
+          
+          dragNodeId = node.id;
+          const canvas = canvasGridRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const gridX = (event.clientX - rect.left - panOffset.value.x) / zoom.value;
+          const gridY = (event.clientY - rect.top - panOffset.value.y) / zoom.value;
+          
+          dragOffset = {
+            x: gridX - node.x,
+            y: gridY - node.y
+          };
+          
+          document.addEventListener('mousemove', onNodeMouseMove);
+          document.addEventListener('mouseup', onNodeMouseUp);
+        }
+
+        function onNodeMouseMove(event) {
+          if (!dragNodeId) return;
+          
+          const node = nodes.value.find(n => n.id === dragNodeId);
+          if (!node) return;
+          
+          const canvas = canvasGridRef.value;
+          const rect = canvas.getBoundingClientRect();
+          let x = (event.clientX - rect.left - panOffset.value.x) / zoom.value - dragOffset.x;
+          let y = (event.clientY - rect.top - panOffset.value.y) / zoom.value - dragOffset.y;
+          
+          x = Math.round(x / 20) * 20;
+          y = Math.round(y / 20) * 20;
+          
+          node.x = Math.max(0, x);
+          node.y = Math.max(0, y);
+        }
+
+        function onNodeMouseUp() {
+          dragNodeId = null;
+          document.removeEventListener('mousemove', onNodeMouseMove);
+          document.removeEventListener('mouseup', onNodeMouseUp);
+        }
+
+        function onCanvasMouseDown(event) {
+          if (event.button !== 0) return;
+          if (event.target.closest('.node')) return;
+          if (event.target.closest('.slot')) return;
+          if (event.target.closest('.toolbar-btn')) return;
+          
+          const canvas = canvasGridRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const x = (event.clientX - rect.left - panOffset.value.x) / zoom.value;
+          const y = (event.clientY - rect.top - panOffset.value.y) / zoom.value;
+          
+          isSelecting.value = true;
+          selectionStart.value = { x, y };
+          selectionEnd.value = { x, y };
+          
+          clearSelection();
+          
+          document.addEventListener('mousemove', onSelectionMouseMove);
+          document.addEventListener('mouseup', onSelectionMouseUp);
+        }
+
+        function onSelectionMouseMove(event) {
+          const canvas = canvasGridRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const x = (event.clientX - rect.left - panOffset.value.x) / zoom.value;
+          const y = (event.clientY - rect.top - panOffset.value.y) / zoom.value;
+          
+          selectionEnd.value = { x, y };
+          
+          const minX = Math.min(selectionStart.value.x, selectionEnd.value.x);
+          const maxX = Math.max(selectionStart.value.x, selectionEnd.value.x);
+          const minY = Math.min(selectionStart.value.y, selectionEnd.value.y);
+          const maxY = Math.max(selectionStart.value.y, selectionEnd.value.y);
+          
+          selectedNodes.value = nodes.value
+            .filter(n => 
+              n.x >= minX && 
+              n.x + n.width <= maxX && 
+              n.y >= minY && 
+              n.y + n.height <= maxY
+            )
+            .map(n => n.id);
+        }
+
+        function onSelectionMouseUp() {
+          isSelecting.value = false;
+          document.removeEventListener('mousemove', onSelectionMouseMove);
+          document.removeEventListener('mouseup', onSelectionMouseUp);
+        }
+
+        function onSlotMouseDown(event, slot, slotType) {
+          if (event.button !== 0) return;
+          
+          connectionStartSlot = slot;
+          connectionStartType = slotType;
+          
+          const canvas = canvasGridRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = (event.clientX - rect.left - panOffset.value.x) / zoom.value;
+          const mouseY = (event.clientY - rect.top - panOffset.value.y) / zoom.value;
+          
+          tempConnection.value = {
+            startPos: { x: mouseX, y: mouseY },
+            endPos: { x: mouseX, y: mouseY },
+            startSlotType: slotType,
+            slot: slot
+          };
+          
+          document.addEventListener('mousemove', onConnectionMouseMove);
+          document.addEventListener('mouseup', onConnectionMouseUp);
+        }
+
+        function onConnectionMouseMove(event) {
+          if (!tempConnection.value) return;
+          
+          const canvas = canvasGridRef.value;
+          const rect = canvas.getBoundingClientRect();
+          const x = (event.clientX - rect.left - panOffset.value.x) / zoom.value;
+          const y = (event.clientY - rect.top - panOffset.value.y) / zoom.value;
+          
+          tempConnection.value.endPos = { x, y };
+        }
+
+        function onConnectionMouseUp(event) {
+          document.removeEventListener('mousemove', onConnectionMouseMove);
+          document.removeEventListener('mouseup', onConnectionMouseUp);
+          
+          if (!tempConnection.value) return;
+          
+          const targetSlot = findTargetSlot(event);
+          
+          if (targetSlot && connectionStartSlot) {
+            tryConnect(connectionStartSlot, connectionStartType, targetSlot.slot, targetSlot.type);
+          }
+          
+          tempConnection.value = null;
+          connectionStartSlot = null;
+          connectionStartType = null;
+        }
+
+        function findTargetSlot(event) {
+          const elements = document.elementsFromPoint(event.clientX, event.clientY);
+          const slotElement = elements.find(el => el.classList.contains('slot'));
+          
+          if (slotElement) {
+            const nodeElement = slotElement.closest('.node');
+            if (nodeElement) {
+              const nodeId = nodeElement.getAttribute('v-key');
+              const isInput = slotElement.closest('.slot-row.inputs');
+              const slotType = isInput ? 'input' : 'output';
+              
+              const slotRows = slotElement.closest('.slot-row');
+              if (slotRows) {
+                const label = slotRows.querySelector('.slot-label')?.textContent;
+                const typeClass = Array.from(slotElement.classList).find(c => c !== 'slot' && c !== 'connected');
+                
+                const node = nodes.value.find(n => {
+                  const slots = slotType === 'input' ? getInputSlots(n) : getOutputSlots(n);
+                  return slots.some(s => s.label === label);
+                });
+                
+                if (node) {
+                  const slots = slotType === 'input' ? getInputSlots(node) : getOutputSlots(node);
+                  const slot = slots.find(s => s.label === label);
+                  if (slot) {
+                    return { slot, type: slotType };
+                  }
+                }
+              }
+            }
+          }
+          
+          return null;
+        }
+
+        function tryConnect(fromSlot, fromType, toSlot, toType) {
+          if (fromType === toType) {
+            showToastFunc('连接类型错误：输出槽只能连接输入槽', 'warning');
+            return;
+          }
+          
+          const actualFrom = fromType === 'output' ? fromSlot : toSlot;
+          const actualTo = fromType === 'output' ? toSlot : fromSlot;
+          
+          if (actualFrom.id === actualTo.id) {
+            showToastFunc('不能连接到自己', 'warning');
+            return;
+          }
+          
+          const existingConn = connections.value.find(c => c.toSlot === actualTo.id);
+          if (existingConn) {
+            showToastFunc('该输入槽已有连接，先删除旧连接', 'warning');
+            return;
+          }
+          
+          const fromTypeValue = actualFrom.type;
+          const toTypeValue = actualTo.type;
+          
+          let hasError = false;
+          if (fromTypeValue !== 'any' && toTypeValue !== 'any' && fromTypeValue !== toTypeValue) {
+            hasError = true;
+            showToastFunc(`类型不匹配：${fromTypeValue} 不能连接 ${toTypeValue}`, 'error');
+          }
+          
+          const connection = {
+            id: 'conn-' + Date.now(),
+            fromSlot: actualFrom.id,
+            toSlot: actualTo.id,
+            hasError: hasError
+          };
+          
+          connections.value.push(connection);
+          
+          if (!hasError) {
+            showToastFunc('连接成功');
+          }
+        }
+
+        function onConnectionClick(conn) {
+          if (confirm('确定要删除这条连接吗？')) {
+            connections.value = connections.value.filter(c => c.id !== conn.id);
+            showToastFunc('连接已删除');
+          }
+        }
+
+        function onNodeRightClick(event, node) {
+          selectNode(node.id, event.ctrlKey || event.metaKey);
+          contextMenu.value = {
+            visible: true,
+            style: {
+              left: event.clientX + 'px',
+              top: event.clientY + 'px'
+            },
+            targetNode: node
+          };
+        }
+
+        function onCanvasRightClick(event) {
+          if (event.target.closest('.node')) return;
+          
+          contextMenu.value = {
+            visible: true,
+            style: {
+              left: event.clientX + 'px',
+              top: event.clientY + 'px'
+            },
+            targetNode: null
+          };
+        }
+
+        function hideContextMenu() {
+          contextMenu.value.visible = false;
+        }
+
+        function onNodeValueChange() {
+        }
+
+        function toggleBooleanValue(node) {
+          node.value = !node.value;
+        }
+
+        function zoomIn() {
+          zoom.value = Math.min(2, zoom.value + 0.1);
+        }
+
+        function zoomOut() {
+          zoom.value = Math.max(0.5, zoom.value - 0.1);
+        }
+
+        function resetZoom() {
+          zoom.value = 1;
+          panOffset.value = { x: 0, y: 0 };
+        }
+
+        function clearCanvas() {
+          if (!confirm('确定要清空画布吗？')) return;
+          nodes.value = [];
+          connections.value = [];
+          selectedNodes.value = [];
+          showToastFunc('画布已清空');
+        }
+
+        function loadSample() {
+          clearSelection();
+          nodes.value = [];
+          connections.value = [];
+          
+          const var1 = createNode('variable', 100, 100);
+          var1.value = 15;
+          var1._sample = true;
+          
+          const var2 = createNode('variable', 100, 300);
+          var2.value = 5;
+          var2._sample = true;
+          
+          const addNode = createNode('add', 350, 200);
+          addNode._sample = true;
+          
+          const output = createNode('output', 600, 200);
+          output._sample = true;
+          
+          nextTick(() => {
+            const var1Slot = getOutputSlots(var1)[0];
+            const var2Slot = getOutputSlots(var2)[0];
+            const addInputA = getInputSlots(addNode)[0];
+            const addInputB = getInputSlots(addNode)[1];
+            const addOutput = getOutputSlots(addNode)[0];
+            const outputInput = getInputSlots(output)[0];
+            
+            connections.value.push({ id: 'conn-1', fromSlot: var1Slot.id, toSlot: addInputA.id, hasError: false });
+            connections.value.push({ id: 'conn-2', fromSlot: var2Slot.id, toSlot: addInputB.id, hasError: false });
+            connections.value.push({ id: 'conn-3', fromSlot: addOutput.id, toSlot: outputInput.id, hasError: false });
+            
+            showToastFunc('示例已加载：15 + 5 = 20');
+          });
+        }
+
+        function exportCode() {
+          const code = generateCode();
+          const blob = new Blob([code], { type: 'text/javascript' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'blueprint.js';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToastFunc('代码已导出');
+        }
+
+        function exportAST() {
+          const ast = generateAST();
+          const json = JSON.stringify(ast, null, 2);
+          const blob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'blueprint-ast.json';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToastFunc('AST已导出');
+        }
+
+        document.addEventListener('click', () => {
+          hideContextMenu();
+        });
+
+        onMounted(() => {
+          console.log('蓝图逻辑编辑器已就绪');
+          showToastFunc('蓝图逻辑编辑器已就绪！拖入节点开始连线');
+        });
+
+        return {
+          nodes,
+          connections,
+          selectedNodes,
+          selectedNode,
+          zoom,
+          panOffset,
+          gridTransform,
+          isSelecting,
+          selectionBoxStyle,
+          tempConnection,
+          contextMenu,
+          showToast,
+          toastMessage,
+          toastType,
+          generatedCode,
+          
+          canvasContainerRef,
+          canvasGridRef,
+          svgRef,
+          
+          getNodeTitle,
+          getNodeIcon,
+          getNodeTypeName,
+          getInputSlots,
+          getOutputSlots,
+          isSlotConnected,
+          getSlotValue,
+          getConnectionPath,
+          getTempConnectionPath,
+          formatValue,
+          getOutputResult,
+          getNodeStyle,
+          
+          onNodeDragStart,
+          onCanvasDrop,
+          onNodeMouseDown,
+          onCanvasMouseDown,
+          onSlotMouseDown,
+          onConnectionClick,
+          onNodeRightClick,
+          onCanvasRightClick,
+          onNodeValueChange,
+          toggleBooleanValue,
+          
+          zoomIn,
+          zoomOut,
+          resetZoom,
+          clearCanvas,
+          loadSample,
+          exportCode,
+          exportAST,
+          deleteSelected,
+          duplicateSelected,
+          groupSelected,
+          deleteNode,
+          duplicateNode
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
