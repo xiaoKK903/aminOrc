@@ -574,7 +574,10 @@
                   <div class="slot" 
                     :class="[slot.type, { connected: isSlotConnected(slot.id) }]"
                     :title="slot.type"
-                    v-on:mousedown.stop="onSlotMouseDown($event, slot, 'input')"></div>
+                    :data-slot-id="slot.id"
+                    :data-slot-type="'input'"
+                    :data-node-id="node.id"
+                    v-on:mousedown.stop="onSlotMouseDown($event, slot, 'input', node.id)"></div>
                   <span class="slot-label">{{ slot.label }}</span>
                   <span v-if="!isSlotConnected(slot.id) && (node.type === 'variable' || node.type === 'add' || node.type === 'subtract' || node.type === 'multiply' || node.type === 'divide' || node.type === 'greaterThan' || node.type === 'lessThan' || node.type === 'equal')" class="slot-value">
                     <input v-if="node.type === 'variable'" type="number" 
@@ -602,7 +605,10 @@
                   <div class="slot" 
                     :class="[slot.type, { connected: isSlotConnected(slot.id) }]"
                     :title="slot.type"
-                    v-on:mousedown.stop="onSlotMouseDown($event, slot, 'output')"></div>
+                    :data-slot-id="slot.id"
+                    :data-slot-type="'output'"
+                    :data-node-id="node.id"
+                    v-on:mousedown.stop="onSlotMouseDown($event, slot, 'output', node.id)"></div>
                 </div>
               </div>
             </div>
@@ -1451,7 +1457,7 @@
           document.removeEventListener('mouseup', onSelectionMouseUp);
         }
 
-        function onSlotMouseDown(event, slot, slotType) {
+        function onSlotMouseDown(event, slot, slotType, nodeId) {
           if (event.button !== 0) return;
           
           connectionStartSlot = slot;
@@ -1466,7 +1472,8 @@
             startPos: { x: mouseX, y: mouseY },
             endPos: { x: mouseX, y: mouseY },
             startSlotType: slotType,
-            slot: slot
+            slot: slot,
+            nodeId: nodeId
           };
           
           document.addEventListener('mousemove', onConnectionMouseMove);
@@ -1506,28 +1513,25 @@
           const slotElement = elements.find(el => el.classList.contains('slot'));
           
           if (slotElement) {
-            const nodeElement = slotElement.closest('.node');
-            if (nodeElement) {
-              const nodeId = nodeElement.getAttribute('v-key');
-              const isInput = slotElement.closest('.slot-row.inputs');
-              const slotType = isInput ? 'input' : 'output';
-              
-              const slotRows = slotElement.closest('.slot-row');
-              if (slotRows) {
-                const label = slotRows.querySelector('.slot-label')?.textContent;
-                const typeClass = Array.from(slotElement.classList).find(c => c !== 'slot' && c !== 'connected');
+            const slotId = slotElement.getAttribute('data-slot-id');
+            const slotType = slotElement.getAttribute('data-slot-type');
+            const nodeId = slotElement.getAttribute('data-node-id');
+            
+            if (slotId && slotType && nodeId) {
+              const node = nodes.value.find(n => n.id === nodeId);
+              if (node) {
+                const inputSlots = getInputSlots(node);
+                const outputSlots = getOutputSlots(node);
                 
-                const node = nodes.value.find(n => {
-                  const slots = slotType === 'input' ? getInputSlots(n) : getOutputSlots(n);
-                  return slots.some(s => s.label === label);
-                });
+                let slot = null;
+                if (slotType === 'input') {
+                  slot = inputSlots.find(s => s.id === slotId);
+                } else {
+                  slot = outputSlots.find(s => s.id === slotId);
+                }
                 
-                if (node) {
-                  const slots = slotType === 'input' ? getInputSlots(node) : getOutputSlots(node);
-                  const slot = slots.find(s => s.label === label);
-                  if (slot) {
-                    return { slot, type: slotType };
-                  }
+                if (slot) {
+                  return { slot, type: slotType, nodeId: nodeId };
                 }
               }
             }
@@ -1550,10 +1554,18 @@
             return;
           }
           
+          const fromNodeId = actualFrom.id.split('-').slice(0, -1).join('-');
+          const toNodeId = actualTo.id.split('-').slice(0, -1).join('-');
+          
+          if (fromNodeId === toNodeId) {
+            showToastFunc('不能连接自己的输入和输出', 'warning');
+            return;
+          }
+          
           const existingConn = connections.value.find(c => c.toSlot === actualTo.id);
           if (existingConn) {
-            showToastFunc('该输入槽已有连接，先删除旧连接', 'warning');
-            return;
+            showToastFunc('已替换旧连接', 'warning');
+            connections.value = connections.value.filter(c => c.id !== existingConn.id);
           }
           
           const fromTypeValue = actualFrom.type;
