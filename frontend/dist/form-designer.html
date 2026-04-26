@@ -62,7 +62,7 @@
     }
     .container {
       display: grid;
-      grid-template-columns: 280px 1fr 320px;
+      grid-template-columns: 260px 1fr 300px;
       gap: 20px;
       height: calc(100vh - 80px);
       padding: 20px;
@@ -94,25 +94,27 @@
     }
     .component-item:hover {
       background: #f3f4f6;
-      border-color: #d1d5db;
+      border-color: #06b6d4;
+      transform: translateX(4px);
     }
     .component-item:active {
       cursor: grabbing;
       background: #e5e7eb;
     }
     .component-item .icon {
-      font-size: 18px;
-      width: 24px;
+      font-size: 20px;
+      width: 28px;
       text-align: center;
     }
     .component-item .text {
       font-size: 14px;
       font-weight: 500;
+      color: #374151;
     }
     .canvas {
       background: white;
       border-radius: 12px;
-      padding: 40px;
+      padding: 30px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       overflow-y: auto;
       position: relative;
@@ -120,22 +122,28 @@
     .canvas h2 {
       font-size: 20px;
       font-weight: 600;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
       text-align: center;
       color: #1f2937;
     }
+    .canvas.drop-over {
+      border: 2px dashed #06b6d4;
+      background: #f0fdfa;
+    }
     .form-item {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 20px;
+      background: #fafafa;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px 20px;
       margin-bottom: 16px;
       position: relative;
       transition: all 0.2s;
+      cursor: pointer;
     }
     .form-item:hover {
       border-color: #06b6d4;
-      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
+      transform: translateY(-2px);
     }
     .form-item.selected {
       border-color: #06b6d4;
@@ -152,10 +160,21 @@
       font-size: 14px;
       font-weight: 600;
       color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-item-title .type-badge {
+      font-size: 11px;
+      font-weight: 500;
+      color: #6b7280;
+      background: #e5e7eb;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
     .form-item-actions {
       display: flex;
-      gap: 8px;
+      gap: 4px;
       opacity: 0;
       transition: opacity 0.2s;
     }
@@ -163,25 +182,67 @@
       opacity: 1;
     }
     .action-btn {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border: none;
       background: #e5e7eb;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 14px;
       transition: all 0.2s;
     }
-    .action-btn:hover {
-      background: #d1d5db;
+    .action-btn:hover:not(:disabled) {
+      background: #06b6d4;
+      color: white;
+    }
+    .action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
     .form-item-content {
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      min-height: 40px;
+    }
+    .form-item-content input,
+    .form-item-content select,
+    .form-item-content textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
       font-size: 14px;
-      color: #6b7280;
-      padding: 8px 0;
+      background: white;
+    }
+    .form-item-content input:focus,
+    .form-item-content select:focus,
+    .form-item-content textarea:focus {
+      outline: none;
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    }
+    .form-item-content textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    .form-item-content button {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .form-item-content button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
     }
     .form-item-footer {
       display: flex;
@@ -189,17 +250,26 @@
       align-items: center;
       margin-top: 12px;
       font-size: 12px;
-      color: #9ca3af;
     }
     .form-item-footer .required {
       color: #ef4444;
-      font-weight: 500;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .form-item-footer .optional {
+      color: #9ca3af;
     }
     .form-item-footer .logic {
       color: #06b6d4;
       cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s;
     }
     .form-item-footer .logic:hover {
+      background: #f0fdfa;
       text-decoration: underline;
     }
     .properties {
@@ -223,43 +293,63 @@
       font-weight: 600;
       margin-bottom: 12px;
       color: #4b5563;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .property-item {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
     .property-item label {
       display: block;
       font-size: 13px;
       font-weight: 500;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       color: #4b5563;
     }
     .property-item input[type="text"],
-    .property-item input[type="number"],
     .property-item select {
       width: 100%;
-      padding: 8px 12px;
+      padding: 10px 14px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       font-size: 14px;
-      transition: border-color 0.3s;
+      transition: all 0.3s;
     }
     .property-item input[type="text"]:focus,
-    .property-item input[type="number"]:focus,
     .property-item select:focus {
       outline: none;
       border-color: #06b6d4;
-      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
-    }
-    .property-item input[type="checkbox"] {
-      margin-right: 8px;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
     }
     .property-item.checkbox {
       display: flex;
       align-items: center;
+      gap: 8px;
+    }
+    .property-item.checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
     }
     .property-item.checkbox label {
       margin: 0;
+      cursor: pointer;
+    }
+    .property-item textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      min-height: 100px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .property-item textarea:focus {
+      outline: none;
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
     }
     .logic-editor {
       background: #f9fafb;
@@ -298,15 +388,17 @@
     }
     .json-content {
       background: #1f2937;
-      color: #f9fafb;
-      border-radius: 6px;
+      color: #10b981;
+      border-radius: 8px;
       padding: 16px;
       font-family: 'Courier New', Courier, monospace;
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 12px;
+      line-height: 1.6;
       overflow-x: auto;
-      max-height: 200px;
+      max-height: 240px;
       overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
     }
     .empty-state {
       text-align: center;
@@ -314,11 +406,26 @@
       color: #9ca3af;
     }
     .empty-state .icon {
-      font-size: 48px;
+      font-size: 56px;
       margin-bottom: 16px;
     }
     .empty-state p {
       font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .empty-state .hint {
+      font-size: 12px;
+      color: #d1d5db;
+    }
+    .no-selection {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+    .no-selection .icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.5;
     }
     .toast {
       position: fixed;
@@ -332,15 +439,16 @@
       z-index: 2000;
       display: none;
       animation: slideIn 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     }
     .toast.active {
       display: block;
     }
     .toast.success {
-      background: #10b981;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     }
     .toast.error {
-      background: #ef4444;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
     @keyframes slideIn {
       from {
@@ -359,8 +467,8 @@
     <div class="header">
       <h1>🧠 智能审批表单设计器</h1>
       <div class="actions">
-        <button class="btn btn-secondary" @click="resetForm">重置</button>
-        <button class="btn btn-primary" @click="exportJSON">导出 JSON</button>
+        <button class="btn btn-secondary" v-on:click="resetForm">重置</button>
+        <button class="btn btn-primary" v-on:click="exportJSON">导出 JSON</button>
       </div>
     </div>
 
@@ -370,11 +478,11 @@
         <h2>📦 组件库</h2>
         <div 
           v-for="component in components" 
-          :key="component.type"
+          v-bind:key="component.type"
           class="component-item"
           draggable="true"
-          @dragstart="onDragStart($event, component)"
-          @click="addComponent(component)"
+          v-on:dragstart="onDragStart($event, component)"
+          v-on:click="addComponent(component)"
         >
           <span class="icon">{{ component.icon }}</span>
           <span class="text">{{ component.name }}</span>
@@ -382,35 +490,43 @@
       </div>
 
       <!-- 中间画布 -->
-      <div class="canvas">
+      <div 
+        class="canvas"
+        v-bind:class="{ 'drop-over': isDropOver }"
+        v-on:dragover.prevent="onDragOver"
+        v-on:dragleave="onDragLeave"
+        v-on:drop="onDrop"
+      >
         <h2>🎨 画布</h2>
         <div v-if="formItems.length === 0" class="empty-state">
           <div class="icon">📋</div>
           <p>从左侧拖拽组件到画布</p>
-          <p style="margin-top: 8px; font-size: 12px;">或点击组件直接添加</p>
+          <p class="hint">或点击组件直接添加</p>
         </div>
         <div 
           v-for="(item, index) in formItems" 
-          :key="item.id"
+          v-bind:key="item.id"
           class="form-item"
-          :class="{ selected: selectedItemId === item.id }"
-          @click="selectItem(item.id)"
+          v-bind:class="{ selected: selectedItemId === item.id }"
+          v-on:click="selectItem(item.id)"
         >
           <div class="form-item-header">
-            <span class="form-item-title">{{ item.title }}</span>
+            <span class="form-item-title">
+              {{ item.title }}
+              <span class="type-badge">{{ getTypeName(item.type) }}</span>
+            </span>
             <div class="form-item-actions">
-              <button class="action-btn" @click.stop="moveItemUp(index)" :disabled="index === 0">↑</button>
-              <button class="action-btn" @click.stop="moveItemDown(index)" :disabled="index === formItems.length - 1">↓</button>
-              <button class="action-btn" @click.stop="deleteItem(item.id)">×</button>
+              <button class="action-btn" v-on:click.stop="moveItemUp(index)" v-bind:disabled="index === 0" title="上移">↑</button>
+              <button class="action-btn" v-on:click.stop="moveItemDown(index)" v-bind:disabled="index === formItems.length - 1" title="下移">↓</button>
+              <button class="action-btn" v-on:click.stop="deleteItem(item.id)" title="删除">×</button>
             </div>
           </div>
-          <div class="form-item-content" v-html="getComponentPreview(item)">
-          </div>
+          <div class="form-item-content" v-html="getComponentPreview(item)"></div>
           <div class="form-item-footer">
-            <span v-if="item.required" class="required">必填</span>
-            <span v-else class="optional">可选</span>
-            <span class="logic" @click.stop="toggleLogic(item.id)">
-              {{ item.logic ? '编辑显隐逻辑' : '添加显隐逻辑' }}
+            <span v-if="item.required" class="required">● 必填</span>
+            <span v-else class="optional">○ 可选</span>
+            <span class="logic" v-on:click.stop="toggleLogic(item.id)">
+              {{ item.logicEnabled ? '✏️ 编辑显隐逻辑' : '➕ 添加显隐逻辑' }}
             </span>
           </div>
         </div>
@@ -419,57 +535,57 @@
       <!-- 右侧属性设置 -->
       <div class="properties">
         <h2>⚙️ 属性设置</h2>
-        <div v-if="!selectedItem">
-          <p style="color: #9ca3af; font-size: 14px;">请选择一个表单组件</p>
+        <div v-if="!selectedItem" class="no-selection">
+          <div class="icon">👆</div>
+          <p>请选择一个表单组件</p>
         </div>
         <div v-else>
           <!-- 基本属性 -->
           <div class="property-group">
-            <h3>基本属性</h3>
+            <h3>📋 基本属性</h3>
             <div class="property-item">
               <label>标题</label>
-              <input type="text" v-model="selectedItem.title" @input="updateItem">
+              <input type="text" v-model="selectedItem.title" v-on:input="updateItem" placeholder="请输入标题">
             </div>
             <div class="property-item checkbox">
-              <input type="checkbox" id="required" v-model="selectedItem.required" @change="updateItem">
+              <input type="checkbox" id="required" v-model="selectedItem.required" v-on:change="updateItem">
               <label for="required">设为必填</label>
             </div>
             <div class="property-item" v-if="selectedItem.type === 'select'">
               <label>选项（一行一个）</label>
               <textarea 
-                style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; min-height: 100px;" 
                 v-model="selectedItem.optionsText" 
-                @input="updateOptions"
-                placeholder="选项1\n选项2\n选项3"
+                v-on:input="updateOptions"
+                placeholder="选项1&#10;选项2&#10;选项3"
               ></textarea>
             </div>
           </div>
 
           <!-- 显隐逻辑 -->
           <div class="property-group">
-            <h3>显隐逻辑</h3>
+            <h3>👁️ 显隐逻辑</h3>
             <div class="property-item checkbox">
-              <input type="checkbox" id="hasLogic" v-model="selectedItem.logicEnabled" @change="toggleLogicEnabled">
+              <input type="checkbox" id="hasLogic" v-model="selectedItem.logicEnabled" v-on:change="toggleLogicEnabled">
               <label for="hasLogic">启用显隐逻辑</label>
             </div>
             <div v-if="selectedItem.logicEnabled" class="logic-editor">
               <h4>显示条件</h4>
               <div class="logic-condition">
-                <select v-model="selectedItem.logic.field" @change="updateItem">
+                <select v-model="selectedItem.logic.field" v-on:change="updateItem">
                   <option value="">选择字段</option>
-                  <option v-for="item in formItems" :key="item.id" :value="item.id" :disabled="item.id === selectedItem.id">
+                  <option v-for="item in formItems" v-bind:key="item.id" v-bind:value="item.id" v-bind:disabled="item.id === selectedItem.id">
                     {{ item.title }}
                   </option>
                 </select>
-                <select v-model="selectedItem.logic.operator" @change="updateItem">
+                <select v-model="selectedItem.logic.operator" v-on:change="updateItem">
                   <option value="eq">等于</option>
                   <option value="ne">不等于</option>
                   <option value="contains">包含</option>
                 </select>
-                <input type="text" v-model="selectedItem.logic.value" @input="updateItem" placeholder="值">
+                <input type="text" v-model="selectedItem.logic.value" v-on:input="updateItem" placeholder="值">
               </div>
               <div class="logic-actions">
-                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" @click="clearLogic">清除逻辑</button>
+                <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" v-on:click="clearLogic">清除逻辑</button>
               </div>
             </div>
           </div>
@@ -483,14 +599,18 @@
       </div>
     </div>
 
-    <div class="toast" :class="{ active: showToast, [toastType]: true }">{{ toastMessage }}</div>
+    <div class="toast" v-bind:class="{ active: showToast, [toastType]: true }">{{ toastMessage }}</div>
   </div>
 
   <script>
-    const { createApp, ref, computed, watch } = Vue;
+    console.log('Vue 加载状态:', typeof Vue !== 'undefined' ? '已加载' : '未加载');
+    
+    const { createApp, ref, computed, onMounted } = Vue;
 
-    createApp({
+    const app = createApp({
       setup() {
+        console.log('Vue setup 开始执行');
+        
         // 组件库
         const components = [
           { type: 'input', name: '单行输入', icon: '📝' },
@@ -508,9 +628,10 @@
         const showToast = ref(false);
         const toastMessage = ref('');
         const toastType = ref('success');
+        const isDropOver = ref(false);
 
         // 拖拽相关
-        const draggedComponent = ref(null);
+        let draggedComponentData = null;
 
         // 生成唯一ID
         function generateId() {
@@ -529,6 +650,7 @@
 
         // 添加组件
         function addComponent(component) {
+          console.log('添加组件:', component);
           const newItem = {
             id: generateId(),
             type: component.type,
@@ -545,17 +667,69 @@
           };
           formItems.value.push(newItem);
           selectItem(newItem.id);
-          showToastFunc(`已添加「${component.name}」组件`);
+          showToastFunc('✅ 已添加「' + component.name + '」组件');
+        }
+
+        // 获取类型名称
+        function getTypeName(type) {
+          const typeMap = {
+            'input': '输入框',
+            'select': '下拉',
+            'date': '日期',
+            'textarea': '多行',
+            'checkbox': '复选',
+            'radio': '单选',
+            'button': '按钮'
+          };
+          return typeMap[type] || type;
         }
 
         // 拖拽开始
         function onDragStart(event, component) {
-          draggedComponent.value = component;
+          console.log('拖拽开始:', component);
+          draggedComponentData = component;
           event.dataTransfer.effectAllowed = 'copy';
+          event.dataTransfer.setData('text/plain', JSON.stringify(component));
+        }
+
+        // 拖拽经过
+        function onDragOver(event) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          isDropOver.value = true;
+        }
+
+        // 拖拽离开
+        function onDragLeave() {
+          isDropOver.value = false;
+        }
+
+        // 拖拽放置
+        function onDrop(event) {
+          console.log('拖拽放置');
+          event.preventDefault();
+          isDropOver.value = false;
+          
+          if (draggedComponentData) {
+            addComponent(draggedComponentData);
+            draggedComponentData = null;
+          } else {
+            // 尝试从 dataTransfer 读取
+            try {
+              const data = event.dataTransfer.getData('text/plain');
+              if (data) {
+                const component = JSON.parse(data);
+                addComponent(component);
+              }
+            } catch (e) {
+              console.error('解析拖拽数据失败:', e);
+            }
+          }
         }
 
         // 选择组件
         function selectItem(id) {
+          console.log('选择组件:', id);
           selectedItemId.value = id;
         }
 
@@ -566,7 +740,7 @@
 
         // 更新组件
         function updateItem() {
-          showToastFunc('属性已更新');
+          showToastFunc('✅ 属性已更新');
         }
 
         // 更新选项
@@ -579,7 +753,7 @@
                 label: option.trim(),
                 value: option.trim().toLowerCase().replace(/\s+/g, '_')
               }));
-            showToastFunc('选项已更新');
+            showToastFunc('✅ 选项已更新');
           }
         }
 
@@ -589,7 +763,7 @@
             const temp = formItems.value[index];
             formItems.value[index] = formItems.value[index - 1];
             formItems.value[index - 1] = temp;
-            showToastFunc('组件已上移');
+            showToastFunc('⬆️ 组件已上移');
           }
         }
 
@@ -598,7 +772,7 @@
             const temp = formItems.value[index];
             formItems.value[index] = formItems.value[index + 1];
             formItems.value[index + 1] = temp;
-            showToastFunc('组件已下移');
+            showToastFunc('⬇️ 组件已下移');
           }
         }
 
@@ -611,7 +785,7 @@
             if (selectedItemId.value === id) {
               selectedItemId.value = null;
             }
-            showToastFunc(`已删除「${item.title}」组件`);
+            showToastFunc('🗑️ 已删除「' + item.title + '」组件');
           }
         }
 
@@ -621,12 +795,14 @@
           if (item) {
             item.logicEnabled = !item.logicEnabled;
             selectItem(id);
-            showToastFunc(item.logicEnabled ? '已启用显隐逻辑' : '已禁用显隐逻辑');
+            showToastFunc(item.logicEnabled ? '✅ 已启用显隐逻辑' : '❌ 已禁用显隐逻辑');
           }
         }
 
         function toggleLogicEnabled() {
-          showToastFunc(selectedItem.value.logicEnabled ? '已启用显隐逻辑' : '已禁用显隐逻辑');
+          if (selectedItem.value) {
+            showToastFunc(selectedItem.value.logicEnabled ? '✅ 已启用显隐逻辑' : '❌ 已禁用显隐逻辑');
+          }
         }
 
         function clearLogic() {
@@ -636,7 +812,7 @@
               operator: 'eq',
               value: ''
             };
-            showToastFunc('显隐逻辑已清除');
+            showToastFunc('🔄 显隐逻辑已清除');
           }
         }
 
@@ -644,21 +820,27 @@
         function getComponentPreview(item) {
           switch (item.type) {
             case 'input':
-              return '<input type="text" placeholder="请输入" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">';
+              return '<input type="text" placeholder="请输入' + (item.title || '') + '" disabled>';
             case 'select':
-              return '<select style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;"><option>请选择</option></select>';
+              let selectOptions = '<option value="">请选择</option>';
+              if (item.options && item.options.length > 0) {
+                item.options.forEach(opt => {
+                  selectOptions += '<option value="' + opt.value + '">' + opt.label + '</option>';
+                });
+              }
+              return '<select disabled>' + selectOptions + '</select>';
             case 'date':
-              return '<input type="date" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">';
+              return '<input type="date" disabled>';
             case 'textarea':
-              return '<textarea placeholder="请输入" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; min-height: 80px;"></textarea>';
+              return '<textarea placeholder="请输入' + (item.title || '') + '" disabled></textarea>';
             case 'checkbox':
-              return '<label><input type="checkbox"> 选项</label>';
+              return '<label><input type="checkbox" disabled> 选项1</label> <label><input type="checkbox" disabled> 选项2</label> <label><input type="checkbox" disabled> 选项3</label>';
             case 'radio':
-              return '<label><input type="radio" name="radio"> 选项1</label> <label><input type="radio" name="radio"> 选项2</label>';
+              return '<label><input type="radio" name="demo" disabled> 选项1</label> <label><input type="radio" name="demo" disabled> 选项2</label>';
             case 'button':
-              return '<button style="padding: 8px 16px; background: #06b6d4; color: white; border: none; border-radius: 4px; cursor: pointer;">按钮</button>';
+              return '<button disabled>' + (item.title || '按钮') + '</button>';
             default:
-              return '组件预览';
+              return '<div style="padding: 10px; background: #e5e7eb; border-radius: 4px; color: #6b7280;">组件预览</div>';
           }
         }
 
@@ -667,7 +849,7 @@
           if (confirm('确定要重置表单吗？所有数据将丢失。')) {
             formItems.value = [];
             selectedItemId.value = null;
-            showToastFunc('表单已重置');
+            showToastFunc('🔄 表单已重置');
           }
         }
 
@@ -683,7 +865,7 @@
           a.click();
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
-          showToastFunc('JSON 已导出');
+          showToastFunc('📥 JSON 已导出');
         }
 
         // 生成表单JSON
@@ -703,6 +885,11 @@
           return JSON.stringify(generateFormJSON(), null, 2);
         });
 
+        onMounted(() => {
+          console.log('Vue 应用已挂载');
+          showToastFunc('✅ 表单设计器已就绪');
+        });
+
         return {
           components,
           formItems,
@@ -712,8 +899,13 @@
           toastMessage,
           toastType,
           formattedJSON,
+          isDropOver,
+          getTypeName,
           addComponent,
           onDragStart,
+          onDragOver,
+          onDragLeave,
+          onDrop,
           selectItem,
           updateItem,
           updateOptions,
@@ -728,7 +920,11 @@
           exportJSON
         };
       }
-    }).mount('#app');
+    });
+
+    console.log('准备挂载 Vue 应用');
+    app.mount('#app');
+    console.log('Vue 应用已成功挂载');
   </script>
 </body>
 </html>
