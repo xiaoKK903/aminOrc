@@ -558,7 +558,7 @@
             v-on:mousedown="onNodeMouseDown($event, node)"
             v-on:contextmenu.prevent="onNodeRightClick($event, node)"
           >
-            <div class="node-header" v-on:mousedown.stop>
+            <div class="node-header">
               <span class="title">
                 <span>{{ getNodeIcon(node.type) }}</span>
                 <span>{{ getNodeTitle(node) }}</span>
