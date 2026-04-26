@@ -3,562 +3,1029 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>企业级全链路日志监控中心</title>
+  <title>日志监控中心 - 企业级全链路监控</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg-primary: #0f172a; --bg-secondary: #1e293b; --bg-tertiary: #334155;
-      --text-primary: #f1f5f9; --text-secondary: #94a3b8; --text-muted: #64748b;
-      --border-color: #475569; --accent-blue: #3b82f6; --accent-cyan: #06b6d4;
-      --accent-green: #10b981; --accent-yellow: #f59e0b; --accent-red: #ef4444;
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f3460;
+      --text-primary: #e8e8e8;
+      --text-secondary: #a0a0a0;
+      --accent-blue: #00d4ff;
+      --accent-purple: #a855f7;
+      --accent-green: #22c55e;
+      --accent-yellow: #eab308;
+      --accent-red: #ef4444;
+      --accent-orange: #f97316;
+      --border-color: #2d3748;
+      --scrollbar-track: #1a1a2e;
+      --scrollbar-thumb: #4a5568;
     }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-primary); color: var(--text-primary); overflow: hidden; font-size: 13px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
     }
-    .container { display: grid; grid-template-rows: 48px 36px 1fr; height: 100vh; }
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
     .header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      height: 52px;
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
       border-bottom: 1px solid var(--border-color);
-      display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
     }
-    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
     .logo {
-      font-size: 18px; font-weight: 700;
-      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .logo-icon {
-      width: 28px; height: 28px;
-      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);
-      border-radius: 6px; display: flex; align-items: center; justify-content: center;
-      font-size: 14px; color: white;
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
     }
-    .header-right { display: flex; align-items: center; gap: 16px; }
-    .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); animation: pulse 2s infinite; }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .status-dot.active { background: var(--accent-green); }
+    .status-dot.warning { background: var(--accent-yellow); animation: blink 1s infinite; }
+    .status-dot.error { background: var(--accent-red); animation: blink 0.5s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .tabs { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; padding: 0 12px; gap: 4px; }
-    .tab {
-      padding: 8px 16px; font-size: 12px; font-weight: 500;
-      color: var(--text-secondary); cursor: pointer;
-      border-radius: 6px 6px 0 0; display: flex; align-items: center; gap: 6px;
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .stats-mini {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+    }
+    .stat-mini-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-mini-value { font-weight: 600; font-size: 14px; }
+    .stat-mini-label { color: var(--text-secondary); }
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-section { border-bottom: 1px solid var(--border-color); }
+    .sidebar-header {
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-content { padding: 8px 12px; overflow-y: auto; }
+    .filter-group { margin-bottom: 12px; }
+    .filter-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .level-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+    .level-filter {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
       transition: all 0.2s;
     }
-    .tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
-    .tab.active { color: var(--accent-cyan); background: var(--bg-primary); border-bottom: 2px solid var(--accent-cyan); }
-    .tab-badge { background: var(--accent-red); color: white; font-size: 10px; padding: 1px 5px; border-radius: 8px; }
-    .content { display: grid; grid-template-columns: 1fr; overflow: hidden; }
-    .tab-content { display: none; height: 100%; overflow: hidden; }
-    .tab-content.active { display: block; }
-    .log-content { display: grid; grid-template-rows: 52px 40px 200px 1fr; height: 100%; }
-    .search-bar { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
-    .search-input-wrapper { flex: 1; position: relative; }
+    .level-filter:hover { background: var(--bg-tertiary); }
+    .level-filter.active { border-color: currentColor; }
+    .level-filter.ERROR { color: var(--accent-red); }
+    .level-filter.WARN { color: var(--accent-yellow); }
+    .level-filter.INFO { color: var(--accent-blue); }
+    .level-filter.DEBUG { color: var(--accent-green); }
+    .level-filter.TRACE { color: var(--text-secondary); }
+    .service-list { max-height: 200px; overflow-y: auto; }
+    .service-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+    .service-item:hover { background: var(--bg-tertiary); }
+    .service-item input {
+      accent-color: var(--accent-blue);
+    }
+    .service-name { flex: 1; }
+    .service-count { color: var(--text-secondary); font-size: 11px; }
+    .time-range {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .time-btn {
+      padding: 6px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .time-btn:hover { background: var(--bg-tertiary); }
+    .time-btn.active {
+      background: var(--bg-tertiary);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+    .center-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .toolbar {
+      height: 48px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .search-box {
+      flex: 1;
+      max-width: 600px;
+      position: relative;
+    }
     .search-input {
-      width: 100%; padding: 8px 12px 8px 36px;
-      background: var(--bg-tertiary); border: 1px solid var(--border-color);
-      border-radius: 6px; color: var(--text-primary);
-      font-size: 13px; font-family: 'Courier New', monospace;
-      outline: none; transition: all 0.2s;
+      width: 100%;
+      padding: 8px 36px 8px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
     }
-    .search-input:focus { border-color: var(--accent-cyan); box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1); }
-    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-    .search-hint { font-size: 11px; color: var(--text-muted); background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; }
-    .btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-    .btn-primary { background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%); color: white; }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3); }
-    .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
-    .btn-secondary:hover { background: var(--border-color); }
-    .filter-bar { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 6px 16px; display: flex; align-items: center; gap: 12px; }
-    .level-filter { display: flex; gap: 4px; }
-    .level-btn {
-      padding: 4px 10px; border: 1px solid var(--border-color);
-      border-radius: 4px; font-size: 11px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s;
-      display: flex; align-items: center; gap: 4px;
+    .search-input:focus {
+      border-color: var(--accent-blue);
     }
-    .level-btn.all { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--text-primary); }
-    .level-btn.all.active { background: var(--text-primary); color: var(--bg-primary); }
-    .level-btn.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: #3b82f6; }
-    .level-btn.info.active { background: #3b82f6; color: white; }
-    .level-btn.warn { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: #f59e0b; }
-    .level-btn.warn.active { background: #f59e0b; color: white; }
-    .level-btn.error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: #ef4444; }
-    .level-btn.error.active { background: #ef4444; color: white; }
-    .time-range { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); }
-    .time-select { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; color: var(--text-primary); font-size: 12px; cursor: pointer; }
-    .chart-container { background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 16px; }
-    .chart-box { background: var(--bg-tertiary); border-radius: 8px; padding: 10px; position: relative; }
-    .chart-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-    .log-table-container { position: relative; height: 100%; overflow: hidden; background: var(--bg-primary); }
+    .search-input::placeholder { color: var(--text-secondary); }
+    .search-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .search-syntax {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .search-syntax span {
+      background: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin: 0 2px;
+    }
+    .toolbar-btn {
+      padding: 7px 14px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .toolbar-btn:hover { background: var(--border-color); }
+    .toolbar-btn.primary {
+      background: linear-gradient(135deg, var(--accent-blue), #0066ff);
+      border: none;
+    }
+    .toolbar-btn.danger { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .toolbar-btn.success { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+    .timeline-panel {
+      height: 160px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      display: flex;
+      gap: 16px;
+    }
+    .timeline-chart { flex: 3; }
+    .timeline-stats {
+      flex: 1;
+      display: grid;
+      grid-template-rows: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .stat-card {
+      background: var(--bg-primary);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .stat-card-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .stat-card-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .stat-card-value.tps { color: var(--accent-blue); }
+    .stat-card-value.errors { color: var(--accent-red); }
+    .log-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
     .log-header {
-      position: sticky; top: 0; z-index: 10;
-      background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);
-      display: grid; grid-template-columns: 40px 140px 80px 120px 1fr 100px;
-      padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      font-size: 11px;
+      color: var(--text-secondary);
     }
-    .virtual-scroll-container { height: calc(100% - 36px); overflow-y: auto; overflow-x: hidden; }
-    .virtual-scroll-spacer { position: relative; }
-    .virtual-scroll-viewport { position: absolute; top: 0; left: 0; right: 0; }
+    .log-header-col { flex-shrink: 0; }
+    .col-time { width: 170px; }
+    .col-level { width: 70px; }
+    .col-service { width: 140px; }
+    .col-trace { width: 200px; }
+    .col-message { flex: 1; }
+    .log-virtual-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+      background: #0d1117;
+    }
+    .log-virtual-scroll::-webkit-scrollbar { width: 8px; }
+    .log-virtual-scroll::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+    .log-virtual-scroll::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 4px;
+    }
+    .log-phantom {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      pointer-events: none;
+    }
+    .log-list {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+    }
     .log-row {
-      display: grid; grid-template-columns: 40px 140px 80px 120px 1fr 100px;
-      padding: 6px 12px; font-size: 12px; font-family: 'Courier New', monospace;
-      border-bottom: 1px solid rgba(71, 85, 105, 0.3);
-      cursor: pointer; transition: background 0.15s; align-items: center;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-size: 12px;
+      line-height: 28px;
+      height: 28px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      cursor: pointer;
+      transition: background 0.15s;
     }
-    .log-row:hover { background: var(--bg-secondary); }
-    .log-row.selected { background: rgba(59, 130, 246, 0.1); }
-    .log-index { color: var(--text-muted); font-size: 11px; }
-    .log-time { color: var(--text-secondary); font-size: 11px; }
+    .log-row:hover { background: rgba(255,255,255,0.05); }
+    .log-row.selected { background: rgba(0,212,255,0.1); border-left: 2px solid var(--accent-blue); }
+    .log-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .log-time { color: #6e7681; font-family: 'Consolas', monospace; }
     .log-level {
-      font-size: 10px; font-weight: 700; padding: 2px 6px;
-      border-radius: 4px; text-transform: uppercase;
-      letter-spacing: 0.5px; justify-self: start;
+      font-weight: 600;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
     }
-    .log-level.INFO { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-    .log-level.WARN { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .log-level.ERROR { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-    .log-level.DEBUG { background: rgba(100, 116, 139, 0.2); color: #64748b; }
-    .log-service { color: var(--accent-cyan); font-size: 11px; }
-    .log-message { color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .log-message .highlight { background: rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 0 2px; border-radius: 2px; }
-    .log-trace-id { color: #8b5cf6; font-size: 10px; cursor: pointer; }
-    .log-trace-id:hover { text-decoration: underline; }
-    .toast {
-      position: fixed; bottom: 24px; right: 24px;
-      padding: 12px 20px; border-radius: 8px;
-      color: white; font-size: 13px; font-weight: 500;
-      z-index: 2000; display: none;
-      animation: slideUp 0.3s ease; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    .log-level.ERROR { background: rgba(239,68,68,0.2); color: #f85149; }
+    .log-level.WARN { background: rgba(234,179,8,0.2); color: #d29922; }
+    .log-level.INFO { background: rgba(0,212,255,0.15); color: #58a6ff; }
+    .log-level.DEBUG { background: rgba(34,197,94,0.15); color: #3fb950; }
+    .log-level.TRACE { background: rgba(140,140,140,0.15); color: #8b949e; }
+    .log-service { color: #a855f7; }
+    .log-trace { color: #6e7681; font-family: 'Consolas', monospace; font-size: 11px; }
+    .log-message { color: #e8e8e8; font-family: 'Consolas', monospace; }
+    .highlight {
+      background: rgba(255,200,0,0.3);
+      padding: 1px 2px;
+      border-radius: 2px;
+      color: #ffd700;
     }
-    .toast.active { display: block; }
-    .toast.success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-    .toast.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    .streaming-indicator { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #10b981; }
-    .streaming-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 1s infinite; }
-    .paused { color: var(--text-muted); }
-    .paused .streaming-dot { background: var(--text-muted); animation: none; }
-    .monitor-charts { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; padding: 16px; height: 100%; overflow-y: auto; }
-    .monitor-card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; min-height: 250px; }
-    .monitor-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .monitor-card-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
-    .monitor-card-value { font-size: 24px; font-weight: 700; color: var(--accent-cyan); }
-    .monitor-chart { height: 180px; }
-    .metric-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-    .metric-badge.up { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .metric-badge.down { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-    .metric-badge.stable { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-    .config-body { padding: 20px; overflow-y: auto; }
-    .data-status { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-    .data-status-title { font-size: 12px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
-    .data-status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .data-status-item { text-align: center; }
-    .data-status-value { font-size: 24px; font-weight: 700; color: var(--accent-cyan); }
-    .data-status-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-    .config-section { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-    .config-section-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
-    .config-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(71, 85, 105, 0.3); }
-    .config-row:last-child { border-bottom: none; }
-    .config-label { font-size: 12px; color: var(--text-primary); }
-    .config-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-    .config-toggle { position: relative; width: 44px; height: 24px; background: var(--bg-tertiary); border-radius: 12px; cursor: pointer; transition: all 0.3s; }
-    .config-toggle.active { background: var(--accent-cyan); }
-    .config-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: all 0.3s; }
-    .config-toggle.active::after { left: 22px; }
-    .alarm-list { overflow-y: auto; padding: 12px; }
-    .alarm-item { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; margin-bottom: 10px; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; }
-    .alarm-item.critical { border-left: 4px solid #ef4444; }
-    .alarm-item.warning { border-left: 4px solid #f59e0b; }
-    .alarm-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .alarm-item.critical .alarm-icon { background: rgba(239, 68, 68, 0.1); }
-    .alarm-item.warning .alarm-icon { background: rgba(245, 158, 11, 0.1); }
-    .alarm-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
-    .alarm-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
-    .alarm-meta { display: flex; gap: 16px; font-size: 11px; color: var(--text-muted); }
-    .alarm-actions { display: flex; flex-direction: column; gap: 6px; }
-    .alarm-btn { padding: 4px 10px; border: 1px solid var(--border-color); background: var(--bg-tertiary); border-radius: 4px; font-size: 11px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
-    .alarm-btn:hover { background: var(--border-color); color: var(--text-primary); }
-    .log-detail-panel {
-      position: fixed; top: 100px; right: 20px; width: 500px; max-height: 70vh;
-      background: var(--bg-secondary); border: 1px solid var(--border-color);
-      border-radius: 8px; box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
-      z-index: 1000; display: none; flex-direction: column;
+    .detail-panel {
+      width: 420px;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    .log-detail-panel.visible { display: flex; }
-    .detail-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-    .detail-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .detail-close { width: 24px; height: 24px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; border-radius: 4px; font-size: 16px; }
-    .detail-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-    .detail-body { padding: 16px; overflow-y: auto; flex: 1; }
-    .detail-section { margin-bottom: 16px; }
-    .detail-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .detail-value { background: var(--bg-tertiary); padding: 8px 12px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all; }
-    .scroll-indicator { position: fixed; bottom: 80px; right: 24px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: var(--text-secondary); z-index: 100; }
-    .scroll-indicator strong { color: var(--accent-cyan); }
+    .detail-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .detail-tab {
+      padding: 12px 20px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .detail-tab:hover { color: var(--text-primary); }
+    .detail-tab.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+    }
+    .detail-content { flex: 1; overflow-y: auto; padding: 16px; }
+    .detail-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .detail-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .detail-section { margin-bottom: 20px; }
+    .detail-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .detail-row {
+      display: flex;
+      padding: 6px 0;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .detail-label {
+      width: 90px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .detail-value { flex: 1; word-break: break-all; font-family: 'Consolas', monospace; }
+    .detail-value.error { color: var(--accent-red); }
+    .detail-value.warn { color: var(--accent-yellow); }
+    .detail-value.info { color: var(--accent-blue); }
+    .message-box {
+      background: var(--bg-primary);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .flame-chart-container {
+      height: 250px;
+      background: var(--bg-primary);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .flame-bar {
+      height: 24px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .flame-bar:hover { opacity: 0.9; }
+    .flame-segment {
+      height: 20px;
+      position: absolute;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 10px;
+      color: white;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 30px;
+    }
+    .flame-segment .duration {
+      margin-left: auto;
+      opacity: 0.8;
+      font-size: 9px;
+    }
+    .stack-trace {
+      background: var(--bg-primary);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Consolas', monospace;
+      font-size: 11px;
+      line-height: 1.8;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .stack-line { display: flex; padding: 2px 0; }
+    .stack-index {
+      color: var(--text-secondary);
+      width: 24px;
+      flex-shrink: 0;
+    }
+    .stack-method { color: var(--accent-blue); }
+    .stack-file { color: var(--text-secondary); margin-left: 8px; }
+    .stack-line:hover { background: rgba(255,255,255,0.05); }
+    .alert-panel {
+      position: fixed;
+      top: 60px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .alert-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-red);
+      border-radius: 6px;
+      padding: 12px 16px;
+      min-width: 320px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(100px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .alert-title {
+      font-weight: 600;
+      color: var(--accent-red);
+      font-size: 13px;
+    }
+    .alert-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .alert-message {
+      font-size: 12px;
+      color: var(--text-primary);
+      font-family: 'Consolas', monospace;
+    }
+    .alert-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-group { display: flex; gap: 8px; }
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-primary);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: var(--border-color); }
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100px;
+      color: var(--text-secondary);
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--accent-green);
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 1s infinite;
+    }
+    .paused .live-dot { background: var(--accent-orange); animation: none; }
+    .paused { color: var(--accent-orange); }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 500px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title { font-size: 14px; font-weight: 600; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--accent-blue); }
   </style>
 </head>
 <body>
   <div id="app">
-    <div class="container">
+    <div class="app-container">
       <div class="header">
         <div class="header-left">
-          <div class="logo">
-            <div class="logo-icon">📊</div>
-            <span>LogMonitor Pro</span>
+          <button class="back-btn" @click="goBack">
+            <span>←</span>
+            <span>返回</span>
+          </button>
+          <div class="logo">📡 日志监控中心</div>
+          <div class="status-indicator">
+            <div class="status-dot" :class="isStreaming ? 'active' : 'warning'"></div>
+            <span v-if="isStreaming">实时流式推送中</span>
+            <span v-else>已暂停</span>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">企业级全链路日志监控中心</div>
         </div>
         <div class="header-right">
-          <div class="streaming-indicator" v-if="isStreaming">
-            <div class="streaming-dot"></div>
-            <span>实时流: 活跃</span>
-          </div>
-          <div class="streaming-indicator paused" v-else>
-            <div class="streaming-dot"></div>
-            <span>实时流: 暂停</span>
-          </div>
-          <div class="status-indicator">
-            <div class="status-dot"></div>
-            <span>{{ formattedTime }}</span>
-          </div>
-          <div style="font-size: 11px; color: var(--text-muted); padding: 4px 10px; background: var(--bg-tertiary); border-radius: 4px;">
-            日志量: <strong style="color: var(--accent-cyan);">{{ totalLogs.toLocaleString() }}</strong> 行
-          </div>
-          <button class="btn btn-secondary" v-on:click="toggleStreaming">
-            {{ isStreaming ? '⏸ 暂停' : '▶ 开始' }}
-          </button>
-          <button class="btn btn-secondary" v-on:click="generateMoreData">
-            🔄 生成数据
-          </button>
-        </div>
-      </div>
-
-      <div class="tabs">
-        <div class="tab" :class="{ active: activeTab === 'logs' }" v-on:click="switchTab('logs')">
-          📋 日志查询
-        </div>
-        <div class="tab" :class="{ active: activeTab === 'monitor' }" v-on:click="switchTab('monitor')">
-          📈 性能监控
-        </div>
-        <div class="tab" :class="{ active: activeTab === 'alarm' }" v-on:click="switchTab('alarm')">
-          ⚠️ 告警中心
-          <span class="tab-badge" v-if="criticalAlarmCount > 0">{{ criticalAlarmCount }}</span>
-        </div>
-        <div class="tab" :class="{ active: activeTab === 'config' }" v-on:click="switchTab('config')">
-          ⚙️ 系统配置
-        </div>
-      </div>
-
-      <div class="content">
-        <!-- 日志查询 -->
-        <div class="tab-content" :class="{ active: activeTab === 'logs' }">
-          <div class="log-content">
-            <div class="search-bar">
-              <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="search-input" placeholder="输入检索条件 (支持: keyword, level:ERROR, service:user-service)" 
-                  v-model="searchQuery"
-                  v-on:input="onSearch"
-                  v-on:keyup.enter="onSearch">
-              </div>
-              <span class="search-hint">语法: keyword | level:ERROR | service:api-gateway</span>
-              <button class="btn btn-secondary" v-on:click="clearSearch">
-                🔄 重置
-              </button>
-              <button class="btn btn-primary" v-on:click="onSearch">
-                🔍 查询
-              </button>
+          <div class="stats-mini">
+            <div class="stat-mini-item">
+              <span class="stat-mini-value" style="color: var(--accent-blue)">{{ totalLogs.toLocaleString() }}</span>
+              <span class="stat-mini-label">条日志</span>
             </div>
+            <div class="stat-mini-item">
+              <span class="stat-mini-value" style="color: var(--accent-red)">{{ errorCount.toLocaleString() }}</span>
+              <span class="stat-mini-label">错误</span>
+            </div>
+            <div class="stat-mini-item">
+              <span class="stat-mini-value" style="color: var(--accent-green)">{{ currentTPS }}</span>
+              <span class="stat-mini-label">TPS</span>
+            </div>
+          </div>
+          <div class="live-indicator" :class="{ paused: !autoScroll }">
+            <div class="live-dot"></div>
+            <span>{{ autoScroll ? '自动滚动' : '已锁定' }}</span>
+          </div>
+        </div>
+      </div>
 
-            <div class="filter-bar">
-              <div class="level-filter">
-                <div class="level-btn all" :class="{ active: levelFilter === 'ALL' }" v-on:click="setLevelFilter('ALL')">
-                  全部
-                </div>
-                <div class="level-btn info" :class="{ active: levelFilter === 'INFO' }" v-on:click="setLevelFilter('INFO')">
-                  INFO
-                </div>
-                <div class="level-btn warn" :class="{ active: levelFilter === 'WARN' }" v-on:click="setLevelFilter('WARN')">
-                  WARN
-                </div>
-                <div class="level-btn error" :class="{ active: levelFilter === 'ERROR' || levelFilter === 'FATAL' }" v-on:click="setLevelFilter('ERROR')">
-                  ERROR
+      <div class="main-layout">
+        <div class="sidebar">
+          <div class="sidebar-section">
+            <div class="sidebar-header">
+              <span>日志级别</span>
+              <span style="font-size: 10px; color: var(--text-secondary);">筛选</span>
+            </div>
+            <div class="sidebar-content">
+              <div class="level-filters">
+                <div
+                  v-for="level in logLevels"
+                  :key="level"
+                  class="level-filter"
+                  :class="[level, { active: selectedLevels.includes(level) }]"
+                  @click="toggleLevel(level)"
+                >
+                  {{ level }}
                 </div>
               </div>
-              <div style="flex: 1;"></div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="sidebar-header">
+              <span>微服务</span>
+              <span style="font-size: 10px; color: var(--text-secondary);">{{ selectedServices.length }}/{{ services.length }}</span>
+            </div>
+            <div class="sidebar-content service-list">
+              <div
+                v-for="service in services"
+                :key="service.name"
+                class="service-item"
+                @click="toggleService(service.name)"
+              >
+                <input type="checkbox" :checked="selectedServices.includes(service.name)" @click.stop>
+                <span class="service-name">{{ service.name }}</span>
+                <span class="service-count">{{ (serviceCounts[service.name] || 0).toLocaleString() }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="sidebar-header">
+              <span>时间范围</span>
+            </div>
+            <div class="sidebar-content">
               <div class="time-range">
-                <span>时间范围:</span>
-                <select class="time-select" v-model="timeRange" v-on:change="onTimeRangeChange">
-                  <option value="5min">最近5分钟</option>
-                  <option value="30min" selected>最近30分钟</option>
-                  <option value="1h">最近1小时</option>
-                </select>
+                <button
+                  v-for="range in timeRanges"
+                  :key="range.value"
+                  class="time-btn"
+                  :class="{ active: selectedTimeRange === range.value }"
+                  @click="selectTimeRange(range.value)"
+                >
+                  {{ range.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="sidebar-header">
+              <span>数据生成</span>
+            </div>
+            <div class="sidebar-content">
+              <div class="filter-group">
+                <label class="filter-label">生成日志数量</label>
+                <div class="btn-group" style="flex-wrap: wrap; gap: 6px;">
+                  <button class="toolbar-btn" @click="generateLogs(1000)">1K</button>
+                  <button class="toolbar-btn" @click="generateLogs(10000)">10K</button>
+                  <button class="toolbar-btn" @click="generateLogs(50000)">50K</button>
+                  <button class="toolbar-btn" @click="generateLogs(100000)">100K</button>
+                  <button class="toolbar-btn primary" @click="generateLogs(500000)">500K</button>
+                  <button class="toolbar-btn primary" @click="generateLogs(1000000)">1M</button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">实时流</label>
+                <div class="btn-group">
+                  <button
+                    class="toolbar-btn"
+                    :class="isStreaming ? 'success' : 'danger'"
+                    @click="toggleStreaming"
+                  >
+                    {{ isStreaming ? '⏸ 暂停' : '▶ 开始' }}
+                  </button>
+                </div>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">操作</label>
+                <div class="btn-group">
+                  <button class="toolbar-btn danger" @click="clearLogs">清空日志</button>
+                  <button class="toolbar-btn" @click="exportLogs">导出</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section" style="flex: 1;">
+            <div class="sidebar-header">
+              <span>告警配置</span>
+            </div>
+            <div class="sidebar-content">
+              <div class="filter-group">
+                <label class="filter-label">错误率阈值</label>
+                <input type="number" v-model.number="alertConfig.errorRateThreshold" class="form-input" style="padding: 6px 10px; font-size: 12px;">
+                <span style="font-size: 10px; color: var(--text-secondary);">%</span>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">连续错误告警</label>
+                <input type="number" v-model.number="alertConfig.consecutiveErrors" class="form-input" style="padding: 6px 10px; font-size: 12px;">
+                <span style="font-size: 10px; color: var(--text-secondary);">次</span>
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">TPS告警阈值</label>
+                <input type="number" v-model.number="alertConfig.tpsThreshold" class="form-input" style="padding: 6px 10px; font-size: 12px;">
+                <span style="font-size: 10px; color: var(--text-secondary);">/秒</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-panel">
+          <div class="toolbar">
+            <div class="search-box">
+              <input
+                type="text"
+                v-model="searchQuery"
+                class="search-input"
+                placeholder="搜索日志... (支持: ERROR service:api-gateway trace:xxx -排除 '精确匹配')"
+                @keyup.enter="performSearch"
+              >
+              <span class="search-icon">🔍</span>
+            </div>
+            <div class="search-syntax">
+              <span>ERROR</span><span>service:gateway</span><span>trace:abc</span><span>-排除</span><span>"精确"</span>
+            </div>
+            <button class="toolbar-btn" @click="toggleAutoScroll">
+              {{ autoScroll ? '🔒 锁定' : '🔓 滚动' }}
+            </button>
+            <button class="toolbar-btn" @click="jumpToLatest">
+              ⤓ 最新
+            </button>
+          </div>
+
+          <div class="timeline-panel">
+            <div class="timeline-chart" ref="timelineChartRef"></div>
+            <div class="timeline-stats">
+              <div class="stat-card">
+                <div class="stat-card-label">当前 TPS</div>
+                <div class="stat-card-value tps">{{ currentTPS }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-label">错误计数</div>
+                <div class="stat-card-value errors">{{ errorCount.toLocaleString() }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-container">
+            <div class="log-header">
+              <div class="log-header-col col-time">时间</div>
+              <div class="log-header-col col-level">级别</div>
+              <div class="log-header-col col-service">服务</div>
+              <div class="log-header-col col-trace">Trace ID</div>
+              <div class="log-header-col col-message">消息</div>
+            </div>
+            <div
+              class="log-virtual-scroll"
+              ref="scrollContainerRef"
+              @scroll="handleScroll"
+            >
+              <div
+                class="log-phantom"
+                :style="{ height: totalHeight + 'px' }"
+              ></div>
+              <div
+                class="log-list"
+                :style="{ transform: 'translateY(' + offsetY + 'px)' }"
+              >
+                <div
+                  v-for="(log, index) in visibleLogs"
+                  :key="log.id"
+                  class="log-row"
+                  :class="{ selected: selectedLog?.id === log.id }"
+                  @click="selectLog(log)"
+                  @dblclick="showStackTrace(log)"
+                >
+                  <div class="log-col log-time col-time">{{ formatTime(log.timestamp) }}</div>
+                  <div class="log-col col-level">
+                    <span class="log-level" :class="log.level">{{ log.level }}</span>
+                  </div>
+                  <div class="log-col log-service col-service">{{ log.service }}</div>
+                  <div class="log-col log-trace col-trace">{{ log.traceId || '-' }}</div>
+                  <div class="log-col log-message col-message" v-html="highlightMessage(log.message)"></div>
+                </div>
+              </div>
+              <div v-if="isGenerating" class="loading-indicator">
+                <div class="spinner"></div>
+                <span>正在生成 {{ generateProgress.toLocaleString() }} 条日志...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-panel" v-if="selectedLog">
+          <div class="detail-tabs">
+            <div
+              v-for="tab in detailTabs"
+              :key="tab"
+              class="detail-tab"
+              :class="{ active: activeDetailTab === tab }"
+              @click="activeDetailTab = tab"
+            >
+              {{ tab }}
+            </div>
+          </div>
+          <div class="detail-content">
+            <div v-if="activeDetailTab === '详情'">
+              <div class="detail-section">
+                <div class="detail-section-title">基本信息</div>
+                <div class="detail-row">
+                  <span class="detail-label">时间</span>
+                  <span class="detail-value">{{ formatFullTime(selectedLog.timestamp) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">级别</span>
+                  <span class="detail-value" :class="selectedLog.level.toLowerCase()">{{ selectedLog.level }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">服务</span>
+                  <span class="detail-value" style="color: var(--accent-purple)">{{ selectedLog.service }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Trace ID</span>
+                  <span class="detail-value" style="color: var(--accent-blue)">{{ selectedLog.traceId || '-' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Span ID</span>
+                  <span class="detail-value">{{ selectedLog.spanId || '-' }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">耗时</span>
+                  <span class="detail-value">{{ selectedLog.duration ? selectedLog.duration + 'ms' : '-' }}</span>
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-section-title">消息内容</div>
+                <div class="message-box" v-html="highlightMessage(selectedLog.message)"></div>
+              </div>
+              <div v-if="selectedLog.exception" class="detail-section">
+                <div class="detail-section-title">异常信息</div>
+                <div class="message-box" style="color: var(--accent-red);">
+                  {{ selectedLog.exception.type }}: {{ selectedLog.exception.message }}
+                </div>
+              </div>
+              <div v-if="selectedLog.tags && selectedLog.tags.length > 0" class="detail-section">
+                <div class="detail-section-title">标签</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                  <span
+                    v-for="tag in selectedLog.tags"
+                    :key="tag"
+                    style="padding: 2px 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 11px; color: var(--text-secondary);"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div class="chart-container">
-              <div class="chart-box">
-                <div class="chart-title">📊 日志分布趋势</div>
-                <div id="log-chart" style="height: 140px;"></div>
-              </div>
-              <div class="chart-box">
-                <div class="chart-title">🔥 错误/异常统计</div>
-                <div id="error-chart" style="height: 140px;"></div>
-              </div>
-            </div>
-
-            <div class="log-table-container">
-              <div class="log-header">
-                <div>#</div>
-                <div>时间</div>
-                <div>级别</div>
-                <div>服务</div>
-                <div>消息</div>
-                <div>TraceID</div>
-              </div>
-              <div class="virtual-scroll-container" ref="scrollContainer" 
-                v-on:scroll="onScroll">
-                <div class="virtual-scroll-spacer" :style="{ height: spacerHeight + 'px' }">
-                  <div class="virtual-scroll-viewport" :style="{ transform: 'translateY(' + offsetY + 'px)' }">
-                    <div v-for="(log, index) in visibleLogs" :key="log.id"
-                      class="log-row"
-                      :class="{ selected: selectedLog?.id === log.id }"
-                      v-on:click="selectLog(log)">
-                      <div class="log-index">{{ visibleStartIndex + index + 1 - (visibleStartIndex > bufferCount ? bufferCount : 0) }}</div>
-                      <div class="log-time">{{ formatLogTime(log.timestamp) }}</div>
-                      <div class="log-level" :class="log.level">{{ log.level }}</div>
-                      <div class="log-service">{{ log.service }}</div>
-                      <div class="log-message" v-html="highlightMessage(log.message)"></div>
-                      <div class="log-trace-id">{{ log.traceId.substring(0, 10) }}...</div>
+            <div v-if="activeDetailTab === '火焰图'">
+              <div class="detail-section">
+                <div class="detail-section-title">链路火焰图</div>
+                <div v-if="flameData.length > 0" class="flame-chart-container">
+                  <div v-for="(row, depth) in flameData" :key="depth" class="flame-bar">
+                    <div
+                      v-for="seg in row"
+                      :key="seg.name + seg.offset"
+                      class="flame-segment"
+                      :style="{
+                        left: seg.offset + '%',
+                        width: seg.width + '%',
+                        background: getFlameColor(seg.depth)
+                      }"
+                      :title="seg.name + ' - ' + seg.duration + 'ms (' + seg.percentage + '%)'"
+                    >
+                      {{ seg.name }}
+                      <span class="duration">{{ seg.duration }}ms</span>
                     </div>
                   </div>
                 </div>
+                <div v-else class="detail-empty" style="height: 200px;">
+                  <div class="detail-empty-icon">🔥</div>
+                  <div>暂无火焰图数据</div>
+                  <div style="font-size: 11px; margin-top: 8px;">选择带调用链路的日志</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="activeDetailTab === '堆栈'">
+              <div class="detail-section">
+                <div class="detail-section-title">调用堆栈</div>
+                <div v-if="selectedLog.stackTrace && selectedLog.stackTrace.length > 0" class="stack-trace">
+                  <div v-for="(line, idx) in selectedLog.stackTrace" :key="idx" class="stack-line">
+                    <span class="stack-index">{{ idx + 1 }}.</span>
+                    <span class="stack-method">{{ line.method }}</span>
+                    <span class="stack-file">{{ line.file }}:{{ line.line }}</span>
+                  </div>
+                </div>
+                <div v-else class="detail-empty" style="height: 200px;">
+                  <div class="detail-empty-icon">📋</div>
+                  <div>暂无堆栈信息</div>
+                  <div style="font-size: 11px; margin-top: 8px;">选择ERROR级别的日志</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 性能监控 -->
-        <div class="tab-content" :class="{ active: activeTab === 'monitor' }">
-          <div style="display: grid; grid-template-rows: 40px 1fr; height: 100%;">
-            <div class="filter-bar">
-              <div style="display: flex; gap: 16px; align-items: center;">
-                <span style="font-size: 12px; color: var(--text-secondary);">服务: </span>
-                <select class="time-select" v-model="monitorService">
-                  <option value="all">全部服务</option>
-                  <option value="api-gateway">API Gateway</option>
-                  <option value="user-service">User Service</option>
-                  <option value="order-service">Order Service</option>
-                </select>
-              </div>
-              <button class="btn btn-secondary" v-on:click="refreshMetrics">
-                🔄 刷新
-              </button>
-            </div>
-            <div class="monitor-charts">
-              <div class="monitor-card">
-                <div class="monitor-card-header">
-                  <div>
-                    <div class="monitor-card-title">⏱️ 请求响应时间 (P99)</div>
-                    <div class="monitor-card-value">{{ metrics.responseTimeP99 }}ms</div>
-                  </div>
-                  <span class="metric-badge stable">→ 稳定</span>
-                </div>
-                <div class="monitor-chart" id="response-time-chart"></div>
-              </div>
-              <div class="monitor-card">
-                <div class="monitor-card-header">
-                  <div>
-                    <div class="monitor-card-title">📊 QPS (每秒请求数)</div>
-                    <div class="monitor-card-value">{{ metrics.qps.toLocaleString() }}</div>
-                  </div>
-                  <span class="metric-badge stable">→ 稳定</span>
-                </div>
-                <div class="monitor-chart" id="qps-chart"></div>
-              </div>
-              <div class="monitor-card">
-                <div class="monitor-card-header">
-                  <div>
-                    <div class="monitor-card-title">💾 内存使用率</div>
-                    <div class="monitor-card-value">{{ metrics.memoryUsage }}%</div>
-                  </div>
-                  <span class="metric-badge" :class="metrics.memoryUsage > 70 ? 'up' : 'stable'">
-                    {{ metrics.memoryUsage > 70 ? '⚠️ 高' : '正常' }}
-                  </span>
-                </div>
-                <div class="monitor-chart" id="memory-chart"></div>
-              </div>
-              <div class="monitor-card">
-                <div class="monitor-card-header">
-                  <div>
-                    <div class="monitor-card-title">💻 CPU使用率</div>
-                    <div class="monitor-card-value">{{ metrics.cpuUsage }}%</div>
-                  </div>
-                  <span class="metric-badge" :class="metrics.cpuUsage > 70 ? 'up' : 'stable'">
-                    {{ metrics.cpuUsage > 70 ? '⚠️ 高' : '正常' }}
-                  </span>
-                </div>
-                <div class="monitor-chart" id="cpu-chart"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 告警中心 -->
-        <div class="tab-content" :class="{ active: activeTab === 'alarm' }">
-          <div style="display: grid; grid-template-rows: 44px 1fr; height: 100%;">
-            <div class="filter-bar">
-              <div class="alarm-stats" style="display: flex; gap: 20px;">
-                <div class="alarm-stat" style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
-                  <div class="alarm-count critical" style="font-size: 20px; font-weight: 700;">{{ criticalAlarmCount }}</div>
-                  <div>
-                    <div style="font-size: 12px; font-weight: 600; color: #ef4444;">严重</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">Critical</div>
-                  </div>
-                </div>
-                <div class="alarm-stat" style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
-                  <div class="alarm-count warning" style="font-size: 20px; font-weight: 700; color: #f59e0b;">{{ warningAlarmCount }}</div>
-                  <div>
-                    <div style="font-size: 12px; font-weight: 600; color: #f59e0b;">警告</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">Warning</div>
-                  </div>
-                </div>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <button class="btn btn-secondary" v-on:click="acknowledgeAll">
-                  ✓ 全部确认
-                </button>
-                <button class="btn btn-secondary" v-on:click="clearAllAlarms">
-                  🗑️ 清除全部
-                </button>
-              </div>
-            </div>
-            <div class="alarm-list">
-              <div v-for="alarm in alarms" :key="alarm.id"
-                class="alarm-item"
-                :class="alarm.severity">
-                <div class="alarm-icon">
-                  <span v-if="alarm.severity === 'critical'">🚨</span>
-                  <span v-else>⚠️</span>
-                </div>
-                <div>
-                  <div class="alarm-title">{{ alarm.title }}</div>
-                  <div class="alarm-desc">{{ alarm.description }}</div>
-                  <div class="alarm-meta">
-                    <span>服务: {{ alarm.service }}</span>
-                    <span>时间: {{ formatLogTime(alarm.timestamp) }}</span>
-                  </div>
-                </div>
-                <div class="alarm-actions">
-                  <button class="alarm-btn" v-if="!alarm.acknowledged" v-on:click="acknowledgeAlarm(alarm)">
-                    ✓ 确认
-                  </button>
-                  <button class="alarm-btn" v-on:click="removeAlarm(alarm)">
-                    ✕ 关闭
-                  </button>
-                </div>
-              </div>
-              <div v-if="alarms.length === 0" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
-                <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-                <div style="font-size: 14px; font-weight: 600;">系统运行正常</div>
-                <div style="font-size: 12px; margin-top: 8px;">暂无告警</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 系统配置 -->
-        <div class="tab-content" :class="{ active: activeTab === 'config' }">
-          <div style="display: grid; grid-template-rows: 40px 1fr; height: 100%;">
-            <div class="filter-bar">
-              <div style="display: flex; gap: 16px; align-items: center;">
-                <div v-if="isStreaming" class="streaming-indicator">
-                  <div class="streaming-dot"></div>
-                  <span>数据生成中</span>
-                </div>
-                <div v-else class="streaming-indicator paused">
-                  <div class="streaming-dot"></div>
-                  <span>数据生成已暂停</span>
-                </div>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <button class="btn btn-secondary" v-on:click="resetAllData">
-                  🔄 重置所有数据
-                </button>
-                <button class="btn btn-primary" v-on:click="saveConfig">
-                  💾 保存配置
-                </button>
-              </div>
-            </div>
-            <div class="config-body">
-              <div class="data-status">
-                <div class="data-status-title">📊 数据统计</div>
-                <div class="data-status-grid">
-                  <div class="data-status-item">
-                    <div class="data-status-value">{{ totalLogs.toLocaleString() }}</div>
-                    <div class="data-status-label">日志总数</div>
-                  </div>
-                  <div class="data-status-item">
-                    <div class="data-status-value">{{ errorLogsCount.toLocaleString() }}</div>
-                    <div class="data-status-label">错误日志</div>
-                  </div>
-                  <div class="data-status-item">
-                    <div class="data-status-value">{{ uniqueTraceIds }}</div>
-                    <div class="data-status-label">唯一链路</div>
-                  </div>
-                  <div class="data-status-item">
-                    <div class="data-status-value">10</div>
-                    <div class="data-status-label">微服务数量</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="config-section">
-                <div class="config-section-title">📡 实时流配置</div>
-                <div class="config-row">
-                  <div>
-                    <div class="config-label">启用实时日志推送</div>
-                    <div class="config-desc">模拟后端流式推送日志数据</div>
-                  </div>
-                  <div class="config-toggle" :class="{ active: config.enableStreaming }" v-on:click="toggleConfig('enableStreaming')"></div>
-                </div>
-                <div class="config-row">
-                  <div>
-                    <div class="config-label">推送频率</div>
-                    <div class="config-desc">每秒生成的日志数量</div>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <input type="range" min="1" max="50" v-model.number="config.streamingRate" style="width: 150px;">
-                    <span>{{ config.streamingRate }} 条/秒</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="config-section">
-                <div class="config-section-title">💾 数据持久化</div>
-                <div class="config-row">
-                  <div>
-                    <div class="config-label">启用本地持久化</div>
-                    <div class="config-desc">使用 localStorage 保存数据</div>
-                  </div>
-                  <div class="config-toggle" :class="{ active: config.enablePersistence }" v-on:click="toggleConfig('enablePersistence')"></div>
-                </div>
-                <div class="config-row">
-                  <div>
-                    <div class="config-label">最大日志条数</div>
-                    <div class="config-desc">超过后自动清理旧数据</div>
-                  </div>
-                  <select class="time-select" v-model.number="config.maxLogs">
-                    <option value="10000">10,000</option>
-                    <option value="50000">50,000</option>
-                    <option value="100000" selected>100,000</option>
-                    <option value="500000">500,000</option>
-                  </select>
-                </div>
+        <div class="detail-panel" v-else>
+          <div class="detail-content">
+            <div class="detail-empty">
+              <div class="detail-empty-icon">📖</div>
+              <div>选择一条日志查看详情</div>
+              <div style="font-size: 11px; margin-top: 8px; color: var(--text-secondary);">
+                双击日志行可查看完整堆栈
               </div>
             </div>
           </div>
@@ -566,704 +1033,927 @@
       </div>
     </div>
 
-    <!-- 日志详情面板 -->
-    <div class="log-detail-panel" :class="{ visible: showLogDetail }">
-      <div class="detail-header">
-        <div class="detail-title">
-          <span v-if="selectedLog?.level === 'ERROR' || selectedLog?.level === 'FATAL'" style="color: #ef4444;">🚨</span>
-          <span v-else style="color: var(--accent-cyan);">📋</span>
-          日志详情
+    <div class="alert-panel">
+      <div
+        v-for="alert in alerts"
+        :key="alert.id"
+        class="alert-item"
+        :style="{ borderLeftColor: alert.type === 'error' ? 'var(--accent-red)' : 'var(--accent-yellow)' }"
+      >
+        <button class="alert-close" @click="dismissAlert(alert.id)">×</button>
+        <div class="alert-header">
+          <span class="alert-title" :style="{ color: alert.type === 'error' ? 'var(--accent-red)' : 'var(--accent-yellow)' }">
+            {{ alert.title }}
+          </span>
+          <span class="alert-time">{{ formatTime(alert.timestamp) }}</span>
         </div>
-        <button class="detail-close" v-on:click="closeLogDetail">×</button>
-      </div>
-      <div class="detail-body" v-if="selectedLog">
-        <div class="detail-section">
-          <div class="detail-label">时间</div>
-          <div class="detail-value">{{ formatLogTime(selectedLog.timestamp, true) }}</div>
-        </div>
-        <div class="detail-section">
-          <div class="detail-label">级别</div>
-          <div class="detail-value" :style="{ color: getLevelColor(selectedLog.level) }">{{ selectedLog.level }}</div>
-        </div>
-        <div class="detail-section">
-          <div class="detail-label">服务</div>
-          <div class="detail-value" style="color: var(--accent-cyan);">{{ selectedLog.service }}</div>
-        </div>
-        <div class="detail-section">
-          <div class="detail-label">TraceID</div>
-          <div class="detail-value" style="color: #8b5cf6;">{{ selectedLog.traceId }}</div>
-        </div>
-        <div class="detail-section">
-          <div class="detail-label">消息</div>
-          <div class="detail-value">{{ selectedLog.message }}</div>
-        </div>
-        <div class="detail-section" v-if="selectedLog.stackTrace">
-          <div class="detail-label">堆栈信息</div>
-          <div class="detail-value" style="color: #ef4444; font-size: 11px; line-height: 1.8; white-space: pre-wrap;">
-            {{ selectedLog.stackTrace }}
-          </div>
-        </div>
+        <div class="alert-message">{{ alert.message }}</div>
       </div>
     </div>
 
-    <div class="toast" :class="{ active: showToast, [toastType]: true }">{{ toastMessage }}</div>
-
-    <div class="scroll-indicator" v-if="filteredLogs.length > 1000">
-      显示 <strong>{{ visibleLogs.length }}</strong> 条 / 共 <strong>{{ filteredLogs.length.toLocaleString() }}</strong> 条
-      <span style="margin-left: 8px; color: var(--text-muted);">(虚拟滚动)</span>
+    <div class="modal-overlay" :class="{ active: showStackModal }">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">📋 完整调用堆栈</div>
+          <button class="modal-close" @click="showStackModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="stack-trace" style="max-height: 400px;">
+            <div v-for="(line, idx) in modalStackTrace" :key="idx" class="stack-line">
+              <span class="stack-index">{{ idx + 1 }}.</span>
+              <span class="stack-method">{{ line.method }}</span>
+              <span class="stack-file">{{ line.file }}:{{ line.line }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="toolbar-btn" @click="copyStackTrace">复制堆栈</button>
+          <button class="toolbar-btn primary" @click="showStackModal = false">关闭</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+    const { createApp, ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } = Vue;
 
-    const services = [
-      'api-gateway', 'user-service', 'order-service', 'payment-service',
-      'inventory-service', 'notification-service', 'analytics-service',
-      'auth-service', 'config-service', 'registry-service'
+    const ITEM_HEIGHT = 28;
+    const BUFFER_SIZE = 50;
+    const STORAGE_KEY = 'log_monitor_data';
+
+    const SERVICES = [
+      'api-gateway', 'auth-service', 'user-service', 'order-service',
+      'payment-service', 'inventory-service', 'notification-service',
+      'analytics-service', 'search-service', 'cache-service',
+      'message-queue', 'email-service', 'sms-service', 'file-service',
+      'config-service', 'registry-service'
     ];
 
-    const levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
+    const LOG_LEVELS = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'];
 
-    const infoMessages = [
-      'Request processed successfully', 'User authenticated via JWT token',
-      'Database connection pool initialized', 'Cache miss, querying database',
-      'Configuration reloaded from config server', 'Health check passed',
-      'Scheduled task started', 'Metrics exported to Prometheus',
-      'Service registered with Eureka', 'Circuit breaker closed',
-      'Rate limit: within threshold', 'Transaction committed successfully',
-      'Event published to Kafka topic', 'REST API call completed',
-      'Session created for user'
+    const TIME_RANGES = [
+      { label: '5分', value: 5 },
+      { label: '15分', value: 15 },
+      { label: '1小时', value: 60 },
+      { label: '6小时', value: 360 },
+      { label: '1天', value: 1440 },
+      { label: '全部', value: 0 }
     ];
 
-    const errorMessages = [
-      'NullPointerException: Cannot invoke method on null object',
-      'SQLException: Connection refused by database',
-      'IOException: Failed to read file from S3',
-      'TimeoutException: Request to downstream service timed out',
-      'IllegalArgumentException: Invalid parameter value',
-      'ClassNotFoundException: Missing dependency class',
-      'OutOfMemoryError: Java heap space exhausted',
-      'SocketException: Connection reset by peer',
-      'JSONParseException: Invalid JSON format in request',
-      'AuthenticationException: Invalid credentials provided',
-      'AccessDeniedException: Insufficient permissions',
-      'DuplicateKeyException: Unique constraint violation',
-      'OptimisticLockingFailureException: Concurrent modification detected',
-      'DataIntegrityViolationException: Referential integrity constraint',
-      'ResourceNotFoundException: Requested resource not found'
+    const ERROR_TEMPLATES = [
+      'Connection timeout after 30000ms to database server db-prod-01:3306',
+      'NullPointerException occurred while processing request: user.getId() returned null',
+      'SQLSyntaxErrorException: You have an error in your SQL syntax near \'WHERE status = ?\'',
+      'OutOfMemoryError: Java heap space at java.util.Arrays.copyOf(Arrays.java:3332)',
+      'IOException: Connection reset by peer during file upload',
+      'ClassNotFoundException: com.fasterxml.jackson.databind.ObjectMapper',
+      'IllegalArgumentException: Invalid UUID string: invalid-uuid-format',
+      'IndexOutOfBoundsException: Index 10 out of bounds for length 5',
+      'NoSuchElementException: No value present at java.util.Optional.get(Optional.java:135)',
+      'ConcurrentModificationException: ForEach loop modified the underlying collection'
+    ];
+
+    const WARN_TEMPLATES = [
+      'Slow query detected: took 2500ms, threshold is 1000ms',
+      'High memory usage detected: 85% of heap space used',
+      'Connection pool nearing capacity: 95/100 connections in use',
+      'Deprecated API usage: method getUserById() is deprecated, use findUser() instead',
+      'Retry attempt 3/5 for operation: syncUserData',
+      'Circuit breaker opened for service: payment-service, failure rate 85%',
+      'Rate limit approaching: 950/1000 requests in current window',
+      'Session timeout imminent for user: user@example.com, 30 seconds remaining'
+    ];
+
+    const INFO_TEMPLATES = [
+      'Request processed successfully: GET /api/users/123, status=200, duration={duration}ms',
+      'User authentication successful: user@example.com from IP 192.168.1.100',
+      'Order created: order_id=ORD-{id}, amount={amount}, user=user_{uid}',
+      'Cache hit ratio: 92% in last 5 minutes',
+      'Scheduled task completed: daily_data_sync, duration=4500ms, records=15620',
+      'Service health check passed: all dependencies online',
+      'New connection established from client at 10.0.0.5:45231',
+      'Configuration reloaded successfully from config-server'
+    ];
+
+    const EXCEPTION_TYPES = [
+      'java.lang.NullPointerException',
+      'java.sql.SQLException',
+      'java.io.IOException',
+      'java.lang.IllegalArgumentException',
+      'java.lang.IndexOutOfBoundsException',
+      'java.util.concurrent.TimeoutException',
+      'org.springframework.web.client.ResourceAccessException',
+      'com.fasterxml.jackson.core.JsonProcessingException'
     ];
 
     createApp({
       setup() {
-        const activeTab = ref('logs');
-        const searchQuery = ref('');
-        const levelFilter = ref('ALL');
-        const timeRange = ref('30min');
-        const monitorService = ref('all');
-        const isStreaming = ref(true);
-        const showToast = ref(false);
-        const toastMessage = ref('');
-        const toastType = ref('success');
-        const showLogDetail = ref(false);
-        const selectedLog = ref(null);
-        
         const allLogs = ref([]);
-        const filteredLogs = ref([]);
-        const alarms = ref([]);
-        
-        const scrollContainer = ref(null);
-        const visibleStartIndex = ref(0);
-        const visibleCount = ref(50);
-        const rowHeight = 36;
-        const bufferCount = 10;
-        const offsetY = ref(0);
-        
-        const charts = {};
-        
-        const config = ref({
-          enableStreaming: true, streamingRate: 10, errorRate: 5,
-          enableAlarms: true, enablePersistence: true,
-          autoSaveInterval: 60000, maxLogs: 100000
+        const scrollContainerRef = ref(null);
+        const timelineChartRef = ref(null);
+        const timelineChart = ref(null);
+
+        const scrollTop = ref(0);
+        const containerHeight = ref(0);
+        const selectedLog = ref(null);
+        const searchQuery = ref('');
+        const selectedLevels = ref(['ERROR', 'WARN', 'INFO']);
+        const selectedServices = ref([...SERVICES]);
+        const selectedTimeRange = ref(60);
+        const autoScroll = ref(true);
+        const isStreaming = ref(false);
+        const isGenerating = ref(false);
+        const generateProgress = ref(0);
+        const activeDetailTab = ref('详情');
+        const showStackModal = ref(false);
+        const modalStackTrace = ref([]);
+        const alerts = ref([]);
+
+        const detailTabs = ['详情', '火焰图', '堆栈'];
+
+        const services = computed(() => SERVICES.map(name => ({ name })));
+        const logLevels = ref(LOG_LEVELS);
+        const timeRanges = ref(TIME_RANGES);
+
+        const alertConfig = reactive({
+          errorRateThreshold: 5,
+          consecutiveErrors: 10,
+          tpsThreshold: 1000
         });
-        
-        const metrics = ref({
-          responseTimeP99: 145, responseTimeTrend: 'stable',
-          qps: 12580, qpsTrend: 'stable',
-          memoryUsage: 68, cpuUsage: 45
+
+        const serviceCounts = computed(() => {
+          const counts = {};
+          allLogs.value.forEach(log => {
+            counts[log.service] = (counts[log.service] || 0) + 1;
+          });
+          return counts;
         });
-        
+
         const totalLogs = computed(() => allLogs.value.length);
-        const errorLogsCount = computed(() => allLogs.value.filter(l => l.level === 'ERROR' || l.level === 'FATAL').length);
-        const uniqueTraceIds = computed(() => {
-          const set = new Set();
-          allLogs.value.forEach(l => set.add(l.traceId));
-          return set.size;
+        const errorCount = computed(() => allLogs.value.filter(l => l.level === 'ERROR').length);
+
+        const recentTPS = ref([]);
+        const currentTPS = computed(() => {
+          if (recentTPS.value.length === 0) return 0;
+          const sum = recentTPS.value.reduce((a, b) => a + b, 0);
+          return Math.round(sum / recentTPS.value.length);
         });
-        
-        const criticalAlarmCount = computed(() => alarms.value.filter(a => a.severity === 'critical' && !a.acknowledged).length);
-        const warningAlarmCount = computed(() => alarms.value.filter(a => a.severity === 'warning' && !a.acknowledged).length);
-        
-        const spacerHeight = computed(() => filteredLogs.value.length * rowHeight);
-        
+
+        const displayedLogs = computed(() => {
+          let logs = allLogs.value;
+
+          if (selectedLevels.value.length > 0 && selectedLevels.value.length < LOG_LEVELS.length) {
+            logs = logs.filter(l => selectedLevels.value.includes(l.level));
+          }
+
+          if (selectedServices.value.length > 0 && selectedServices.value.length < SERVICES.length) {
+            logs = logs.filter(l => selectedServices.value.includes(l.service));
+          }
+
+          if (searchQuery.value) {
+            const { keywords, serviceFilter, traceFilter, excludeKeywords, exactPhrases } = parseSearchQuery(searchQuery.value);
+            
+            logs = logs.filter(log => {
+              const message = log.message.toLowerCase();
+              const service = log.service;
+              const traceId = log.traceId || '';
+
+              if (serviceFilter && service !== serviceFilter) return false;
+
+              if (traceFilter && !traceId.includes(traceFilter)) return false;
+
+              for (const kw of keywords) {
+                if (!message.includes(kw.toLowerCase())) return false;
+              }
+
+              for (const phrase of exactPhrases) {
+                if (!log.message.includes(phrase)) return false;
+              }
+
+              for (const kw of excludeKeywords) {
+                if (message.includes(kw.toLowerCase())) return false;
+              }
+
+              return true;
+            });
+          }
+
+          return logs;
+        });
+
         const visibleLogs = computed(() => {
-          const start = Math.max(0, visibleStartIndex.value - bufferCount);
-          const end = Math.min(filteredLogs.value.length, visibleStartIndex.value + visibleCount.value + bufferCount);
-          return filteredLogs.value.slice(start, end);
-        });
-        
-        const formattedTime = computed(() => {
-          return new Date().toLocaleTimeString('zh-CN', { hour12: false });
-        });
-        
-        function showToastFunc(message, type = 'success') {
-          toastMessage.value = message;
-          toastType.value = type;
-          showToast.value = true;
-          setTimeout(() => { showToast.value = false; }, 2500);
-        }
-        
-        function generateId() {
-          return 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        }
-        
-        function generateTraceId() {
-          return 'trace-' + Math.random().toString(36).substr(2, 16) + Math.random().toString(36).substr(2, 16);
-        }
-        
-        function randomService() {
-          return services[Math.floor(Math.random() * services.length)];
-        }
-        
-        function weightedRandomLevel() {
-          const r = Math.random() * 100;
-          if (r < 60) return 'INFO';
-          if (r < 80) return 'DEBUG';
-          if (r < 90) return 'WARN';
-          if (r < 97) return 'ERROR';
-          if (r < 99) return 'TRACE';
-          return 'FATAL';
-        }
-        
-        function randomInfoMessage() {
-          return infoMessages[Math.floor(Math.random() * infoMessages.length)] + ' - ' + Math.floor(Math.random() * 1000);
-        }
-        
-        function randomErrorMessage() {
-          return errorMessages[Math.floor(Math.random() * errorMessages.length)];
-        }
-        
-        function generateLog(index) {
-          const level = weightedRandomLevel();
-          const isError = level === 'ERROR' || level === 'FATAL';
-          const service = randomService();
+          if (!scrollContainerRef.value || displayedLogs.value.length === 0) return [];
           
+          const startIndex = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - BUFFER_SIZE);
+          const endIndex = Math.min(
+            displayedLogs.value.length,
+            Math.ceil((scrollTop.value + containerHeight.value) / ITEM_HEIGHT) + BUFFER_SIZE
+          );
+          
+          return displayedLogs.value.slice(startIndex, endIndex);
+        });
+
+        const offsetY = computed(() => {
+          if (displayedLogs.value.length === 0) return 0;
+          const startIndex = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - BUFFER_SIZE);
+          return startIndex * ITEM_HEIGHT;
+        });
+
+        const totalHeight = computed(() => {
+          return displayedLogs.value.length * ITEM_HEIGHT;
+        });
+
+        const flameData = computed(() => {
+          if (!selectedLog.value || !selectedLog.value.traceId) return [];
+          
+          const traceLogs = allLogs.value.filter(l => l.traceId === selectedLog.value.traceId);
+          if (traceLogs.length === 0) return [];
+
+          return generateFlameData(traceLogs);
+        });
+
+        function parseSearchQuery(query) {
+          const result = {
+            keywords: [],
+            serviceFilter: null,
+            traceFilter: null,
+            excludeKeywords: [],
+            exactPhrases: []
+          };
+
+          const exactRegex = /"([^"]+)"/g;
+          let match;
+          let remaining = query;
+          while ((match = exactRegex.exec(query)) !== null) {
+            result.exactPhrases.push(match[1]);
+            remaining = remaining.replace(match[0], '');
+          }
+
+          const tokens = remaining.trim().split(/\s+/).filter(t => t);
+          
+          tokens.forEach(token => {
+            if (token.startsWith('service:')) {
+              result.serviceFilter = token.substring(8);
+            } else if (token.startsWith('trace:')) {
+              result.traceFilter = token.substring(6);
+            } else if (token.startsWith('-')) {
+              result.excludeKeywords.push(token.substring(1));
+            } else if (token.length > 0) {
+              result.keywords.push(token);
+            }
+          });
+
+          return result;
+        }
+
+        function generateId() {
+          return 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function generateTraceId() {
+          return 'trace_' + Math.random().toString(16).substr(2, 16);
+        }
+
+        function generateSpanId() {
+          return Math.random().toString(16).substr(2, 8);
+        }
+
+        function randomChoice(arr) {
+          return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randomInt(min, max) {
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateLog(timestamp = Date.now(), options = {}) {
+          const service = options.service || randomChoice(SERVICES);
+          const level = options.level || (() => {
+            const r = Math.random();
+            if (r < 0.05) return 'ERROR';
+            if (r < 0.15) return 'WARN';
+            if (r < 0.6) return 'INFO';
+            if (r < 0.85) return 'DEBUG';
+            return 'TRACE';
+          })();
+
+          let message = '';
+          let exception = null;
+          let stackTrace = null;
+          let traceId = Math.random() > 0.3 ? generateTraceId() : null;
+          let spanId = traceId ? generateSpanId() : null;
+          let duration = null;
+          let tags = [];
+
+          if (level === 'ERROR') {
+            message = randomChoice(ERROR_TEMPLATES);
+            const exType = randomChoice(EXCEPTION_TYPES);
+            exception = {
+              type: exType,
+              message: message
+            };
+            stackTrace = generateStackTrace(exType);
+            tags = ['error', 'exception'];
+          } else if (level === 'WARN') {
+            message = randomChoice(WARN_TEMPLATES);
+            tags = ['warning'];
+          } else {
+            const templates = INFO_TEMPLATES;
+            message = randomChoice(templates);
+            message = message
+              .replace('{duration}', randomInt(10, 500).toString())
+              .replace('{id}', randomInt(100000, 999999).toString())
+              .replace('{amount}', (Math.random() * 10000).toFixed(2))
+              .replace('{uid}', randomInt(1, 10000).toString());
+            tags = ['info'];
+            if (message.includes('duration') || message.includes('processed')) {
+              duration = randomInt(10, 500);
+            }
+          }
+
           return {
             id: generateId(),
-            index: index,
-            timestamp: Date.now() - Math.floor(Math.random() * 30 * 60 * 1000),
-            level: level,
-            service: service,
-            message: isError ? randomErrorMessage() : randomInfoMessage(),
-            traceId: generateTraceId(),
-            stackTrace: isError ? generateStackTrace() : null
+            timestamp: timestamp - randomInt(0, 1000),
+            level,
+            service,
+            message,
+            traceId,
+            spanId,
+            duration,
+            exception,
+            stackTrace,
+            tags
           };
         }
-        
-        function generateStackTrace() {
+
+        function generateStackTrace(exType) {
           const methods = [
-            'com.example.userservice.controller.UserController.getUser',
-            'com.example.userservice.service.UserService.findUserById',
-            'com.example.userservice.repository.UserRepository.findById'
+            { method: 'java.util.HashMap.get', file: 'HashMap.java', line: randomInt(100, 200) },
+            { method: 'com.example.service.UserService.getUserById', file: 'UserService.java', line: randomInt(50, 150) },
+            { method: 'com.example.controller.UserController.getUser', file: 'UserController.java', line: randomInt(30, 100) },
+            { method: 'sun.reflect.NativeMethodAccessorImpl.invoke0', file: 'NativeMethodAccessorImpl.java', line: -2 },
+            { method: 'org.springframework.web.servlet.FrameworkServlet.service', file: 'FrameworkServlet.java', line: randomInt(800, 900) },
+            { method: 'org.apache.catalina.core.ApplicationFilterChain.doFilter', file: 'ApplicationFilterChain.java', line: randomInt(200, 300) },
+            { method: 'com.example.filter.AuthFilter.doFilter', file: 'AuthFilter.java', line: randomInt(40, 80) },
+            { method: 'java.util.concurrent.ThreadPoolExecutor.runWorker', file: 'ThreadPoolExecutor.java', line: randomInt(1100, 1200) },
+            { method: 'java.lang.Thread.run', file: 'Thread.java', line: 748 }
           ];
-          
-          let stack = 'java.lang.NullPointerException: Cannot invoke "String.length()" because "str" is null\n';
-          stack += '\tat ' + methods[0] + '(UserController.java:' + (Math.floor(Math.random() * 50) + 30) + ')\n';
-          stack += '\tat ' + methods[1] + '(UserService.java:' + (Math.floor(Math.random() * 100) + 50) + ')';
-          
-          return stack;
+
+          return methods.slice(0, randomInt(5, methods.length));
         }
-        
-        function generateInitialLogs(count = 1000) {
-          const newLogs = [];
-          for (let i = 0; i < count; i++) {
-            newLogs.push(generateLog(allLogs.value.length + i));
-          }
-          allLogs.value = [...newLogs.reverse(), ...allLogs.value];
-          
-          if (allLogs.value.length > config.value.maxLogs) {
-            allLogs.value = allLogs.value.slice(0, config.value.maxLogs);
-          }
-          
-          applyFilters();
+
+        function generateFlameData(traceLogs) {
+          if (traceLogs.length === 0) return [];
+
+          const sorted = [...traceLogs].sort((a, b) => a.timestamp - b.timestamp);
+          const minTime = sorted[0].timestamp;
+          const maxTime = sorted[sorted.length - 1].timestamp + (sorted[sorted.length - 1].duration || 100);
+          const totalDuration = maxTime - minTime || 1;
+
+          const flame = [];
+          const depthMap = new Map();
+
+          sorted.forEach((log, idx) => {
+            const depth = idx % 4;
+            if (!flame[depth]) flame[depth] = [];
+
+            const offset = ((log.timestamp - minTime) / totalDuration) * 100;
+            const duration = log.duration || randomInt(10, 100);
+            const width = Math.max(5, (duration / Math.max(totalDuration, 1000)) * 100);
+
+            flame[depth].push({
+              name: log.service,
+              offset: Math.max(0, Math.min(100 - width, offset)),
+              width: Math.min(100 - offset, width),
+              duration,
+              depth,
+              percentage: ((width / 100) * 100).toFixed(1)
+            });
+          });
+
+          return flame;
         }
-        
-        function generateMoreData() {
-          generateInitialLogs(500);
-          updateCharts();
-          showToastFunc('已生成 500 条日志');
+
+        function getFlameColor(depth) {
+          const colors = [
+            '#00d4ff', '#a855f7', '#22c55e', '#f97316',
+            '#ec4899', '#06b6d4', '#84cc16', '#eab308'
+          ];
+          return colors[depth % colors.length];
         }
-        
-        function applyFilters() {
-          let result = [...allLogs.value];
-          
-          if (levelFilter.value !== 'ALL') {
-            if (levelFilter.value === 'ERROR') {
-              result = result.filter(l => l.level === 'ERROR' || l.level === 'FATAL');
-            } else {
-              result = result.filter(l => l.level === levelFilter.value);
-            }
-          }
-          
-          if (searchQuery.value.trim()) {
-            const query = searchQuery.value.trim().toLowerCase();
-            
-            if (query.startsWith('level:')) {
-              const levelFilterValue = query.substring(6).toUpperCase();
-              result = result.filter(l => l.level === levelFilterValue);
-            } else if (query.startsWith('service:')) {
-              const serviceFilterValue = query.substring(8);
-              result = result.filter(l => l.service.toLowerCase().includes(serviceFilterValue));
-            } else if (query.startsWith('traceid:')) {
-              const traceFilterValue = query.substring(8);
-              result = result.filter(l => l.traceId.toLowerCase().includes(traceFilterValue));
-            } else {
-              result = result.filter(l => 
-                l.message.toLowerCase().includes(query) ||
-                l.service.toLowerCase().includes(query) ||
-                l.traceId.toLowerCase().includes(query)
-              );
-            }
-          }
-          
-          filteredLogs.value = result;
+
+        function formatTime(ts) {
+          const date = new Date(ts);
+          return date.toLocaleTimeString('zh-CN', { hour12: false }) + '.' + String(ts % 1000).padStart(3, '0');
         }
-        
-        function onSearch() {
-          applyFilters();
-          showToastFunc('查询完成，共 ' + filteredLogs.value.length + ' 条结果');
+
+        function formatFullTime(ts) {
+          const date = new Date(ts);
+          return date.toLocaleString('zh-CN', { hour12: false }) + '.' + String(ts % 1000).padStart(3, '0');
         }
-        
-        function clearSearch() {
-          searchQuery.value = '';
-          levelFilter.value = 'ALL';
-          applyFilters();
-          showToastFunc('已重置搜索条件');
-        }
-        
-        function setLevelFilter(level) {
-          levelFilter.value = level;
-          applyFilters();
-        }
-        
-        function onTimeRangeChange() {
-          applyFilters();
-        }
-        
+
         function highlightMessage(message) {
-          if (!searchQuery.value.trim()) return message;
+          if (!searchQuery.value) return escapeHtml(message);
           
-          const query = searchQuery.value.trim().toLowerCase();
-          if (query.startsWith('level:') || query.startsWith('service:') || query.startsWith('traceid:')) {
-            return message;
-          }
+          const { keywords, excludeKeywords, exactPhrases } = parseSearchQuery(searchQuery.value);
+          let result = escapeHtml(message);
           
-          const regex = new RegExp('(' + searchQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-          return message.replace(regex, '<span class="highlight">$1</span>');
+          const allKeywords = [...keywords, ...exactPhrases];
+          allKeywords.forEach(kw => {
+            if (kw.length > 0) {
+              const regex = new RegExp('(' + kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+              result = result.replace(regex, '<span class="highlight">$1</span>');
+            }
+          });
+          
+          return result;
         }
-        
-        function formatLogTime(timestamp, full = false) {
-          const date = new Date(timestamp);
-          if (full) {
-            return date.toLocaleString('zh-CN', { hour12: false });
+
+        function escapeHtml(text) {
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        }
+
+        function handleScroll(e) {
+          scrollTop.value = e.target.scrollTop;
+          if (autoScroll.value) {
+            const atBottom = scrollTop.value + containerHeight.value >= totalHeight.value - 100;
+            if (!atBottom) {
+              autoScroll.value = false;
+            }
           }
-          return date.toLocaleTimeString('zh-CN', { hour12: false });
         }
-        
-        function getLevelColor(level) {
-          const colors = {
-            'TRACE': '#8b5cf6', 'DEBUG': '#64748b', 'INFO': '#3b82f6',
-            'WARN': '#f59e0b', 'ERROR': '#ef4444', 'FATAL': '#dc2626'
-          };
-          return colors[level] || '#94a3b8';
-        }
-        
+
         function selectLog(log) {
           selectedLog.value = log;
-          showLogDetail.value = true;
         }
-        
-        function closeLogDetail() {
-          showLogDetail.value = false;
-          selectedLog.value = null;
+
+        function showStackTrace(log) {
+          if (log.stackTrace && log.stackTrace.length > 0) {
+            modalStackTrace.value = log.stackTrace;
+            showStackModal.value = true;
+          }
         }
-        
-        function switchTab(tab) {
-          activeTab.value = tab;
+
+        function toggleLevel(level) {
+          const idx = selectedLevels.value.indexOf(level);
+          if (idx > -1) {
+            if (selectedLevels.value.length > 1) {
+              selectedLevels.value.splice(idx, 1);
+            }
+          } else {
+            selectedLevels.value.push(level);
+          }
+        }
+
+        function toggleService(service) {
+          const idx = selectedServices.value.indexOf(service);
+          if (idx > -1) {
+            if (selectedServices.value.length > 1) {
+              selectedServices.value.splice(idx, 1);
+            }
+          } else {
+            selectedServices.value.push(service);
+          }
+        }
+
+        function selectTimeRange(minutes) {
+          selectedTimeRange.value = minutes;
+        }
+
+        function toggleAutoScroll() {
+          autoScroll.value = !autoScroll.value;
+          if (autoScroll.value) {
+            jumpToLatest();
+          }
+        }
+
+        function jumpToLatest() {
           nextTick(() => {
-            if (tab === 'monitor') {
-              initMonitorCharts();
-            } else if (tab === 'logs') {
-              initLogCharts();
+            if (scrollContainerRef.value) {
+              scrollContainerRef.value.scrollTop = scrollContainerRef.value.scrollHeight;
+              autoScroll.value = true;
             }
           });
         }
-        
-        function onScroll() {
-          if (!scrollContainer.value) return;
-          const scrollTop = scrollContainer.value.scrollTop;
-          visibleStartIndex.value = Math.floor(scrollTop / rowHeight);
-          offsetY.value = Math.floor(scrollTop / rowHeight) * rowHeight;
+
+        function performSearch() {
         }
-        
-        function toggleStreaming() {
-          isStreaming.value = !isStreaming.value;
-          showToastFunc(isStreaming.value ? '实时流已启动' : '实时流已暂停');
-        }
-        
-        function toggleConfig(key) {
-          config.value[key] = !config.value[key];
-        }
-        
-        function saveConfig() {
-          showToastFunc('配置已保存');
-        }
-        
-        function resetAllData() {
-          if (!confirm('确定要重置所有数据吗？')) return;
-          allLogs.value = [];
-          filteredLogs.value = [];
-          alarms.value = [];
-          showToastFunc('数据已重置');
-        }
-        
-        function refreshMetrics() {
-          metrics.value.responseTimeP99 = Math.floor(Math.random() * 200) + 50;
-          metrics.value.qps = Math.floor(Math.random() * 15000) + 5000;
-          metrics.value.memoryUsage = Math.floor(Math.random() * 40) + 40;
-          metrics.value.cpuUsage = Math.floor(Math.random() * 50) + 20;
-          
-          if (activeTab.value === 'monitor') {
-            initMonitorCharts();
-          }
-          
-          showToastFunc('指标已刷新');
-        }
-        
-        function acknowledgeAlarm(alarm) {
-          alarm.acknowledged = true;
-          showToastFunc('告警已确认');
-        }
-        
-        function acknowledgeAll() {
-          alarms.value.forEach(a => a.acknowledged = true);
-          showToastFunc('全部告警已确认');
-        }
-        
-        function removeAlarm(alarm) {
-          alarms.value = alarms.value.filter(a => a.id !== alarm.id);
-          showToastFunc('告警已移除');
-        }
-        
-        function clearAllAlarms() {
-          if (!confirm('确定要清除所有告警吗？')) return;
-          alarms.value = [];
-          showToastFunc('所有告警已清除');
-        }
-        
-        function generateChartData() {
+
+        async function generateLogs(count) {
+          isGenerating.value = true;
+          generateProgress.value = 0;
+
+          const batchSize = 10000;
+          const totalBatches = Math.ceil(count / batchSize);
           const now = Date.now();
-          const categories = [];
-          const logData = [];
-          const errorData = [];
-          
-          for (let i = 29; i >= 0; i--) {
-            const time = now - i * 60000;
-            const date = new Date(time);
-            categories.push(date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }));
-            logData.push(Math.floor(Math.random() * 500) + 200);
-            errorData.push(Math.floor(Math.random() * 30) + 5);
-          }
-          
-          return { categories, logData, errorData };
-        }
-        
-        function initLogCharts() {
-          const chartData = generateChartData();
-          
-          const logChartEl = document.getElementById('log-chart');
-          if (logChartEl) {
-            if (charts.logChart) charts.logChart.dispose();
-            charts.logChart = echarts.init(logChartEl);
-            charts.logChart.setOption({
-              grid: { left: 40, right: 20, top: 10, bottom: 30 },
-              xAxis: { type: 'category', data: chartData.categories, axisLabel: { fontSize: 10, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } } },
-              yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } }, splitLine: { lineStyle: { color: '#334155' } } },
-              series: [{
-                type: 'line', data: chartData.logData, smooth: true, symbol: 'circle', symbolSize: 4,
-                lineStyle: { color: '#06b6d4', width: 2 }, itemStyle: { color: '#06b6d4' },
-                areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(6, 182, 212, 0.3)' }, { offset: 1, color: 'rgba(6, 182, 212, 0)' }]) }
-              }]
-            });
-          }
-          
-          const errorChartEl = document.getElementById('error-chart');
-          if (errorChartEl) {
-            if (charts.errorChart) charts.errorChart.dispose();
-            charts.errorChart = echarts.init(errorChartEl);
-            charts.errorChart.setOption({
-              grid: { left: 40, right: 20, top: 10, bottom: 30 },
-              xAxis: { type: 'category', data: chartData.categories, axisLabel: { fontSize: 10, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } } },
-              yAxis: { type: 'value', axisLabel: { fontSize: 10, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } }, splitLine: { lineStyle: { color: '#334155' } } },
-              series: [{
-                type: 'bar', data: chartData.errorData,
-                itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#ef4444' }, { offset: 1, color: '#dc2626' }]), borderRadius: [4, 4, 0, 0] }
-              }]
-            });
-          }
-        }
-        
-        function initMonitorCharts() {
-          const now = Date.now();
-          const categories = [];
-          const responseTimeData = [];
-          const qpsData = [];
-          const memoryData = [];
-          const cpuData = [];
-          
-          for (let i = 29; i >= 0; i--) {
-            const time = now - i * 60000;
-            const date = new Date(time);
-            categories.push(date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }));
-            responseTimeData.push(Math.floor(Math.random() * 100) + 80);
-            qpsData.push(Math.floor(Math.random() * 5000) + 10000);
-            memoryData.push(Math.floor(Math.random() * 20) + 60);
-            cpuData.push(Math.floor(Math.random() * 30) + 30);
-          }
-          
-          const responseChartEl = document.getElementById('response-time-chart');
-          if (responseChartEl) {
-            if (charts.responseChart) charts.responseChart.dispose();
-            charts.responseChart = echarts.init(responseChartEl);
-            charts.responseChart.setOption({
-              grid: { left: 40, right: 20, top: 10, bottom: 30 },
-              xAxis: { type: 'category', data: categories, axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } } },
-              yAxis: { type: 'value', name: 'ms', axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } }, splitLine: { lineStyle: { color: '#334155' } } },
-              series: [{ type: 'line', data: responseTimeData, smooth: true, symbol: 'circle', symbolSize: 3, lineStyle: { color: '#10b981', width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(16, 185, 129, 0.2)' }, { offset: 1, color: 'rgba(16, 185, 129, 0)' }]) } }]
-            });
-          }
-          
-          const qpsChartEl = document.getElementById('qps-chart');
-          if (qpsChartEl) {
-            if (charts.qpsChart) charts.qpsChart.dispose();
-            charts.qpsChart = echarts.init(qpsChartEl);
-            charts.qpsChart.setOption({
-              grid: { left: 40, right: 20, top: 10, bottom: 30 },
-              xAxis: { type: 'category', data: categories, axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } } },
-              yAxis: { type: 'value', name: 'QPS', axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } }, splitLine: { lineStyle: { color: '#334155' } } },
-              series: [{ type: 'line', data: qpsData, smooth: true, symbol: 'circle', symbolSize: 3, lineStyle: { color: '#3b82f6', width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(59, 130, 246, 0.2)' }, { offset: 1, color: 'rgba(59, 130, 246, 0)' }]) } }]
-            });
-          }
-          
-          const memoryChartEl = document.getElementById('memory-chart');
-          if (memoryChartEl) {
-            if (charts.memoryChart) charts.memoryChart.dispose();
-            charts.memoryChart = echarts.init(memoryChartEl);
-            charts.memoryChart.setOption({
-              grid: { left: 40, right: 20, top: 10, bottom: 30 },
-              xAxis: { type: 'category', data: categories, axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } } },
-              yAxis: { type: 'value', name: '%', max: 100, axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } }, splitLine: { lineStyle: { color: '#334155' } } },
-              series: [{ type: 'line', data: memoryData, smooth: true, symbol: 'circle', symbolSize: 3, lineStyle: { color: '#f59e0b', width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(245, 158, 11, 0.2)' }, { offset: 1, color: 'rgba(245, 158, 11, 0)' }]) } }]
-            });
-          }
-          
-          const cpuChartEl = document.getElementById('cpu-chart');
-          if (cpuChartEl) {
-            if (charts.cpuChart) charts.cpuChart.dispose();
-            charts.cpuChart = echarts.init(cpuChartEl);
-            charts.cpuChart.setOption({
-              grid: { left: 40, right: 20, top: 10, bottom: 30 },
-              xAxis: { type: 'category', data: categories, axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } } },
-              yAxis: { type: 'value', name: '%', max: 100, axisLabel: { fontSize: 9, color: '#64748b' }, axisLine: { lineStyle: { color: '#475569' } }, splitLine: { lineStyle: { color: '#334155' } } },
-              series: [{ type: 'line', data: cpuData, smooth: true, symbol: 'circle', symbolSize: 3, lineStyle: { color: '#8b5cf6', width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(139, 92, 246, 0.2)' }, { offset: 1, color: 'rgba(139, 92, 246, 0)' }]) } }]
-            });
-          }
-        }
-        
-        function updateCharts() {
-          if (activeTab.value === 'logs') {
-            initLogCharts();
-          } else if (activeTab.value === 'monitor') {
-            initMonitorCharts();
-          }
-        }
-        
-        function generateAlarm() {
-          const isCritical = Math.random() > 0.7;
-          const service = randomService();
-          
-          return {
-            id: generateId(),
-            title: isCritical ? '🚨 服务异常 - ' + service : '⚠️ 性能警告 - ' + service,
-            description: isCritical ? 
-              '服务响应时间超过阈值 (当前: ' + Math.floor(Math.random() * 5000) + 'ms)，可能存在性能瓶颈' :
-              'CPU使用率达到 ' + Math.floor(Math.random() * 20 + 80) + '%，请关注资源使用情况',
-            severity: isCritical ? 'critical' : 'warning',
-            service: service,
-            timestamp: Date.now(),
-            acknowledged: false
-          };
-        }
-        
-        let streamInterval = null;
-        let updateInterval = null;
-        
-        function startStreaming() {
-          if (streamInterval) return;
-          
-          streamInterval = setInterval(() => {
-            if (!isStreaming.value) return;
+          const startTime = now - (count * 10);
+          const newLogs = [];
+
+          for (let batch = 0; batch < totalBatches; batch++) {
+            const batchCount = Math.min(batchSize, count - batch * batchSize);
             
-            for (let i = 0; i < Math.min(config.value.streamingRate, 5); i++) {
-              const newLog = generateLog(allLogs.value.length);
-              allLogs.value.unshift(newLog);
+            for (let i = 0; i < batchCount; i++) {
+              const logTime = startTime + Math.floor((batch * batchSize + i) * (now - startTime) / count);
+              newLogs.push(generateLog(logTime));
+            }
+
+            generateProgress.value = (batch + 1) * batchSize;
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+
+          newLogs.sort((a, b) => a.timestamp - b.timestamp);
+          allLogs.value = [...allLogs.value, ...newLogs];
+
+          isGenerating.value = false;
+          saveToStorage();
+          jumpToLatest();
+          updateTimelineChart();
+        }
+
+        function clearLogs() {
+          allLogs.value = [];
+          selectedLog.value = null;
+          recentTPS.value = [];
+          saveToStorage();
+          updateTimelineChart();
+        }
+
+        function exportLogs() {
+          const data = JSON.stringify(allLogs.value.slice(-10000), null, 2);
+          const blob = new Blob([data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `logs_${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        function copyStackTrace() {
+          const text = modalStackTrace.value.map(l => `${l.method} (${l.file}:${l.line})`).join('\n');
+          navigator.clipboard.writeText(text).then(() => {
+            showToast('堆栈已复制到剪贴板');
+          });
+        }
+
+        let streamInterval = null;
+        let lastCheckTime = Date.now();
+        let logsInLastSecond = 0;
+        let consecutiveErrors = 0;
+        let lastErrorTime = 0;
+
+        function toggleStreaming() {
+          if (isStreaming.value) {
+            isStreaming.value = false;
+            if (streamInterval) {
+              clearInterval(streamInterval);
+              streamInterval = null;
+            }
+          } else {
+            isStreaming.value = true;
+            startStreaming();
+          }
+        }
+
+        function startStreaming() {
+          streamInterval = setInterval(() => {
+            const count = randomInt(5, 20);
+            const now = Date.now();
+            
+            for (let i = 0; i < count; i++) {
+              const log = generateLog(now - i * 10);
+              allLogs.value.push(log);
               
-              if (newLog.level === 'ERROR' || newLog.level === 'FATAL') {
-                if (Math.random() < 0.3) {
-                  alarms.value.unshift(generateAlarm());
+              if (log.level === 'ERROR') {
+                consecutiveErrors++;
+                lastErrorTime = now;
+                checkAlertConditions(log);
+              } else {
+                if (now - lastErrorTime > 5000) {
+                  consecutiveErrors = 0;
                 }
               }
             }
-            
-            if (allLogs.value.length > config.value.maxLogs) {
-              allLogs.value = allLogs.value.slice(0, config.value.maxLogs);
+
+            logsInLastSecond += count;
+            if (now - lastCheckTime >= 1000) {
+              recentTPS.value.push(logsInLastSecond);
+              if (recentTPS.value.length > 10) {
+                recentTPS.value.shift();
+              }
+              
+              if (currentTPS.value > alertConfig.tpsThreshold) {
+                addAlert('warning', 'TPS告警', `当前TPS: ${currentTPS.value} 超过阈值: ${alertConfig.tpsThreshold}`);
+              }
+              
+              logsInLastSecond = 0;
+              lastCheckTime = now;
             }
-            
-            applyFilters();
-          }, 1000);
+
+            if (allLogs.value.length > 1000000) {
+              allLogs.value = allLogs.value.slice(-500000);
+            }
+
+            if (autoScroll.value) {
+              nextTick(() => {
+                if (scrollContainerRef.value) {
+                  scrollContainerRef.value.scrollTop = scrollContainerRef.value.scrollHeight;
+                }
+              });
+            }
+
+            updateTimelineChart();
+          }, 500);
+        }
+
+        function checkAlertConditions(errorLog) {
+          const recentLogs = allLogs.value.slice(-1000);
+          const errorLogs = recentLogs.filter(l => l.level === 'ERROR');
+          const errorRate = (errorLogs.length / recentLogs.length) * 100;
+
+          if (errorRate > alertConfig.errorRateThreshold && recentLogs.length > 100) {
+            addAlert('error', '错误率告警', `错误率: ${errorRate.toFixed(1)}% 超过阈值: ${alertConfig.errorRateThreshold}%`);
+          }
+
+          if (consecutiveErrors >= alertConfig.consecutiveErrors) {
+            addAlert('error', '连续错误告警', `检测到 ${consecutiveErrors} 次连续错误: ${errorLog.message.substring(0, 50)}...`);
+            consecutiveErrors = 0;
+          }
+        }
+
+        function addAlert(type, title, message) {
+          const existing = alerts.value.find(a => 
+            a.type === type && a.title === title && 
+            Date.now() - a.timestamp < 30000
+          );
           
-          updateInterval = setInterval(() => {
-            updateCharts();
-          }, 5000);
-        }
-        
-        function stopStreaming() {
-          if (streamInterval) {
-            clearInterval(streamInterval);
-            streamInterval = null;
+          if (existing) return;
+
+          const alert = {
+            id: generateId(),
+            type,
+            title,
+            message,
+            timestamp: Date.now()
+          };
+          alerts.value.unshift(alert);
+          
+          if (alerts.value.length > 10) {
+            alerts.value.pop();
           }
-          if (updateInterval) {
-            clearInterval(updateInterval);
-            updateInterval = null;
-          }
+
+          setTimeout(() => {
+            dismissAlert(alert.id);
+          }, 15000);
         }
-        
+
+        function dismissAlert(id) {
+          alerts.value = alerts.value.filter(a => a.id !== id);
+        }
+
         function saveToStorage() {
-          if (!config.value.enablePersistence) return;
-          
           try {
-            const storageKey = 'log-monitor-data';
             const data = {
-              logs: allLogs.value.slice(0, 5000),
-              alarms: alarms.value,
-              config: config.value,
-              savedAt: Date.now()
+              logs: allLogs.value.slice(-50000),
+              timestamp: Date.now()
             };
-            
-            localStorage.setItem(storageKey, JSON.stringify(data));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           } catch (e) {
             console.warn('Failed to save to localStorage:', e);
           }
         }
-        
+
         function loadFromStorage() {
           try {
-            const storageKey = 'log-monitor-data';
-            const saved = localStorage.getItem(storageKey);
-            
-            if (saved) {
-              const data = JSON.parse(saved);
-              
-              if (data.logs && data.logs.length > 0) {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+              const data = JSON.parse(stored);
+              if (data.logs) {
                 allLogs.value = data.logs;
               }
-              
-              if (data.alarms) {
-                alarms.value = data.alarms;
-              }
-              
-              if (data.config) {
-                config.value = { ...config.value, ...data.config };
-              }
-              
-              return true;
             }
           } catch (e) {
             console.warn('Failed to load from localStorage:', e);
           }
-          return false;
         }
-        
-        watch(() => config.value.enablePersistence, (val) => {
-          if (val) {
-            saveToStorage();
+
+        function updateTimelineChart() {
+          if (!timelineChartRef.value || !timelineChart.value) return;
+
+          const recentLogs = allLogs.value.slice(-5000);
+          if (recentLogs.length === 0) return;
+
+          const now = Date.now();
+          const timeWindow = 5 * 60 * 1000;
+          const bucketSize = 5000;
+          const buckets = new Map();
+
+          for (let t = now - timeWindow; t <= now; t += bucketSize) {
+            const key = Math.floor(t / bucketSize) * bucketSize;
+            buckets.set(key, { time: key, ERROR: 0, WARN: 0, INFO: 0, DEBUG: 0, TRACE: 0 });
+          }
+
+          recentLogs.forEach(log => {
+            const key = Math.floor(log.timestamp / bucketSize) * bucketSize;
+            if (buckets.has(key)) {
+              buckets.get(key)[log.level]++;
+            }
+          });
+
+          const times = [];
+          const errorData = [];
+          const warnData = [];
+          const infoData = [];
+
+          const sortedKeys = Array.from(buckets.keys()).sort((a, b) => a - b);
+          sortedKeys.forEach(key => {
+            const bucket = buckets.get(key);
+            times.push(formatTime(key));
+            errorData.push(bucket.ERROR);
+            warnData.push(bucket.WARN);
+            infoData.push(bucket.INFO + bucket.DEBUG + bucket.TRACE);
+          });
+
+          timelineChart.value.setOption({
+            xAxis: {
+              type: 'category',
+              data: times,
+              axisLine: { lineStyle: { color: '#2d3748' } },
+              axisLabel: { color: '#a0a0a0', fontSize: 10 }
+            },
+            yAxis: {
+              type: 'value',
+              axisLine: { lineStyle: { color: '#2d3748' } },
+              axisLabel: { color: '#a0a0a0', fontSize: 10 },
+              splitLine: { lineStyle: { color: '#2d3748' } }
+            },
+            tooltip: {
+              trigger: 'axis',
+              backgroundColor: '#16213e',
+              borderColor: '#2d3748',
+              textStyle: { color: '#e8e8e8' }
+            },
+            legend: {
+              data: ['ERROR', 'WARN', 'INFO'],
+              textStyle: { color: '#a0a0a0' },
+              top: 0
+            },
+            grid: {
+              left: '3%',
+              right: '3%',
+              bottom: '15%',
+              top: '15%',
+              containLabel: true
+            },
+            series: [
+              {
+                name: 'ERROR',
+                type: 'bar',
+                stack: 'logs',
+                data: errorData,
+                itemStyle: { color: '#ef4444' }
+              },
+              {
+                name: 'WARN',
+                type: 'bar',
+                stack: 'logs',
+                data: warnData,
+                itemStyle: { color: '#eab308' }
+              },
+              {
+                name: 'INFO',
+                type: 'bar',
+                stack: 'logs',
+                data: infoData,
+                itemStyle: { color: '#00d4ff' }
+              }
+            ]
+          });
+        }
+
+        function initTimelineChart() {
+          if (!timelineChartRef.value) return;
+          
+          timelineChart.value = echarts.init(timelineChartRef.value);
+          updateTimelineChart();
+
+          window.addEventListener('resize', () => {
+            timelineChart.value?.resize();
+          });
+        }
+
+        function updateContainerHeight() {
+          if (scrollContainerRef.value) {
+            containerHeight.value = scrollContainerRef.value.clientHeight;
+          }
+        }
+
+        function goBack() {
+          if (isStreaming.value) {
+            toggleStreaming();
+          }
+          window.location.href = '/index.html';
+        }
+
+        function showToast(msg) {
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #16213e; color: #e8e8e8; padding: 12px 24px; border-radius: 8px;
+            border: 1px solid #2d3748; z-index: 3000; font-size: 13px;
+          `;
+          toast.textContent = msg;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2000);
+        }
+
+        onMounted(() => {
+          loadFromStorage();
+          nextTick(() => {
+            updateContainerHeight();
+            initTimelineChart();
+            jumpToLatest();
+          });
+
+          window.addEventListener('resize', updateContainerHeight);
+
+          if (allLogs.value.length === 0) {
+            generateLogs(10000);
           }
         });
-        
-        setInterval(() => {
-          if (config.value.enablePersistence) {
-            saveToStorage();
+
+        onUnmounted(() => {
+          if (streamInterval) {
+            clearInterval(streamInterval);
           }
-        }, config.value.autoSaveInterval);
-        
-        onMounted(() => {
-          const hasSavedData = loadFromStorage();
-          
-          if (!hasSavedData || allLogs.value.length < 100) {
-            generateInitialLogs(1000);
-          } else {
-            applyFilters();
+          if (timelineChart.value) {
+            timelineChart.value.dispose();
           }
-          
-          nextTick(() => {
-            initLogCharts();
-            
-            window.addEventListener('resize', () => {
-              if (charts.logChart) charts.logChart.resize();
-              if (charts.errorChart) charts.errorChart.resize();
-              if (charts.responseChart) charts.responseChart.resize();
-              if (charts.qpsChart) charts.qpsChart.resize();
-              if (charts.memoryChart) charts.memoryChart.resize();
-              if (charts.cpuChart) charts.cpuChart.resize();
-            });
-          });
-          
-          if (config.value.enableStreaming) {
-            startStreaming();
-          }
-          
+          window.removeEventListener('resize', updateContainerHeight);
           saveToStorage();
         });
-        
+
+        watch(allLogs, () => {
+          if (isStreaming.value) {
+            updateTimelineChart();
+          }
+        }, { deep: true });
+
         return {
-          activeTab, searchQuery, levelFilter, timeRange, monitorService,
-          isStreaming, showToast, toastMessage, toastType,
-          showLogDetail, selectedLog,
-          allLogs, filteredLogs, alarms,
-          scrollContainer, visibleStartIndex, visibleCount,
-          rowHeight, bufferCount, offsetY,
-          config, metrics,
-          totalLogs, errorLogsCount, uniqueTraceIds,
-          criticalAlarmCount, warningAlarmCount,
-          spacerHeight, visibleLogs, formattedTime,
-          switchTab, onScroll,
-          onSearch, clearSearch, setLevelFilter, onTimeRangeChange,
-          highlightMessage, formatLogTime, getLevelColor,
-          selectLog, closeLogDetail,
-          toggleStreaming, toggleConfig, saveConfig, resetAllData,
-          refreshMetrics,
-          acknowledgeAlarm, acknowledgeAll, removeAlarm, clearAllAlarms,
-          generateMoreData
+          allLogs,
+          scrollContainerRef,
+          timelineChartRef,
+          scrollTop,
+          containerHeight,
+          selectedLog,
+          searchQuery,
+          selectedLevels,
+          selectedServices,
+          selectedTimeRange,
+          autoScroll,
+          isStreaming,
+          isGenerating,
+          generateProgress,
+          activeDetailTab,
+          showStackModal,
+          modalStackTrace,
+          alerts,
+          detailTabs,
+          services,
+          logLevels,
+          timeRanges,
+          alertConfig,
+          serviceCounts,
+          totalLogs,
+          errorCount,
+          currentTPS,
+          displayedLogs,
+          visibleLogs,
+          offsetY,
+          totalHeight,
+          flameData,
+          formatTime,
+          formatFullTime,
+          highlightMessage,
+          handleScroll,
+          selectLog,
+          showStackTrace,
+          toggleLevel,
+          toggleService,
+          selectTimeRange,
+          toggleAutoScroll,
+          jumpToLatest,
+          performSearch,
+          generateLogs,
+          clearLogs,
+          exportLogs,
+          copyStackTrace,
+          toggleStreaming,
+          dismissAlert,
+          goBack,
+          getFlameColor
         };
       }
     }).mount('#app');
