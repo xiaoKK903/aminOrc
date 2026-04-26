@@ -693,6 +693,11 @@
             <span class="icon">📊</span>
             <span class="text">看板设计器</span>
           </div>
+          
+          <div class="menu-item" @click="openLogMonitor">
+            <span class="icon">📋</span>
+            <span class="text">日志监控</span>
+          </div>
         </div>
       </div>
 
@@ -1534,6 +1539,10 @@
           window.location.href = '/dashboard.html';
         }
 
+        function openLogMonitor() {
+          window.location.href = '/log-monitor.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1582,7 +1591,8 @@
           openTicketAssign,
           openFormDesigner,
           openFlowDesigner,
-          openDashboard
+          openDashboard,
+          openLogMonitor
         };
       }
     }).mount('#app');
