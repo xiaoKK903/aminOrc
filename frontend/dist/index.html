@@ -698,6 +698,11 @@
             <span class="icon">📋</span>
             <span class="text">日志监控</span>
           </div>
+          
+          <div class="menu-item" @click="openGateway">
+            <span class="icon">🔗</span>
+            <span class="text">聚合网关</span>
+          </div>
         </div>
       </div>
 
@@ -1543,6 +1548,10 @@
           window.location.href = '/log-monitor.html';
         }
 
+        function openGateway() {
+          window.location.href = '/gateway.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1592,7 +1601,8 @@
           openFormDesigner,
           openFlowDesigner,
           openDashboard,
-          openLogMonitor
+          openLogMonitor,
+          openGateway
         };
       }
     }).mount('#app');
