@@ -130,6 +130,18 @@
       font-size: 12px;
       cursor: pointer;
     }
+    .dept-info {
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--widget-hover-bg);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .dept-info .tech { color: #3b82f6; }
+    .dept-info .sales { color: #ef4444; }
+    .dept-info .finance { color: #10b981; }
+    .dept-info .hr { color: #f59e0b; }
     .canvas-container {
       background: var(--card-bg);
       border-radius: 12px;
@@ -156,11 +168,7 @@
       color: var(--text-color);
     }
     .toolbar-btn:hover { background: var(--accent-color); border-color: var(--accent-color); color: white; }
-    .canvas-wrapper {
-      flex: 1;
-      overflow: auto;
-      position: relative;
-    }
+    .canvas-wrapper { flex: 1; overflow: auto; position: relative; }
     .grid-canvas {
       position: relative;
       min-width: 1200px;
@@ -384,13 +392,27 @@
           <div v-if="activeFilter" class="filter-active">
             <div class="label">当前筛选:</div>
             <div class="value">{{ activeFilter }}</div>
+            <div class="label" style="margin-top: 8px;">部门类型:</div>
+            <div class="value" style="font-size: 12px;">{{ getDeptType(activeFilter) }}</div>
             <button class="clear-btn" v-on:click="clearFilter">清除筛选</button>
           </div>
           <div v-else>
             <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
-              点击饼图中的数据项，其他图表将自动过滤显示对应部门的数据。
+              点击饼图中的部门，其他图表将根据部门类型过滤数据。
             </p>
           </div>
+        </div>
+
+        <div class="dept-info">
+          <h4 style="margin-bottom: 8px; font-size: 12px;">部门类型说明:</h4>
+          <p><span class="tech">🔵 技术类:</span> 研发部、技术部</p>
+          <p style="margin-left: 2em; font-size: 11px; color: var(--text-secondary);">显示: 项目数、BUG数、发布数</p>
+          <p><span class="sales">🔴 业务类:</span> 销售部、市场部</p>
+          <p style="margin-left: 2em; font-size: 11px; color: var(--text-secondary);">显示: 营收、订单、客户增长</p>
+          <p><span class="finance">🟢 财务类:</span> 财务部</p>
+          <p style="margin-left: 2em; font-size: 11px; color: var(--text-secondary);">显示: 预算、支出、利润</p>
+          <p><span class="hr">🟡 人事类:</span> 人事部</p>
+          <p style="margin-left: 2em; font-size: 11px; color: var(--text-secondary);">显示: 员工、招聘、离职</p>
         </div>
       </div>
 
@@ -468,7 +490,6 @@
 
           <div class="property-group">
             <h3>📊 数据配置</h3>
-            
             <div class="data-type-selector">
               <button 
                 class="data-type-btn"
@@ -508,46 +529,258 @@
   <script>
     const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
-    // 测试数据
-    const sampleData = {
-      lineChartSales: {
-        xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
-        series: [
-          { name: '销售额', data: [820, 932, 901, 934, 1290, 1330, 1320, 1450, 1380, 1520, 1650, 1800] }
-        ]
-      },
-      lineChartByDept: {
-        xAxis: ['Q1', 'Q2', 'Q3', 'Q4'],
-        series: [
-          { name: '研发部', data: [120, 180, 150, 220] },
-          { name: '市场部', data: [80, 120, 100, 150] },
-          { name: '财务部', data: [150, 140, 160, 180] },
-          { name: '人事部', data: [60, 70, 65, 80] }
-        ]
-      },
-      pieChartDept: {
-        data: [
-          { name: '研发部', value: 35 },
-          { name: '市场部', value: 25 },
-          { name: '财务部', value: 20 },
-          { name: '人事部', value: 15 },
-          { name: '其他', value: 5 }
-        ]
-      },
-      barChartMonth: {
-        xAxis: ['1月', '2月', '3月', '4月', '5月', '6月'],
-        series: [
-          { name: '新客户', data: [120, 132, 101, 134, 90, 230] },
-          { name: '老客户', data: [220, 182, 191, 234, 290, 330] }
-        ]
-      },
-      metrics: {
-        totalRevenue: { label: '全年营收', value: '¥2.8M', trend: 15.2 },
-        activeUsers: { label: '活跃用户', value: '12.5K', trend: 8.6 },
-        conversionRate: { label: '转化率', value: '23.5%', trend: -2.3 },
-        avgOrderValue: { label: '平均客单价', value: '¥1,280', trend: 5.8 }
-      }
+    // ============================================
+    // 部门类型定义
+    // ============================================
+    const deptTypes = {
+      '研发部': 'tech',
+      '技术部': 'tech',
+      '测试部': 'tech',
+      '运维部': 'tech',
+      '销售部': 'sales',
+      '市场部': 'sales',
+      '运营部': 'sales',
+      '财务部': 'finance',
+      '人事部': 'hr',
+      '其他': 'other'
     };
+
+    // ============================================
+    // 完整测试数据 - 按部门类型区分
+    // ============================================
+    
+    // 饼图部门分布数据
+    const pieDeptData = {
+      data: [
+        { name: '研发部', value: 35 },
+        { name: '销售部', value: 25 },
+        { name: '市场部', value: 15 },
+        { name: '技术部', value: 10 },
+        { name: '财务部', value: 8 },
+        { name: '人事部', value: 7 }
+      ]
+    };
+
+    // ============================================
+    // 技术类数据 (研发部、技术部)
+    // ============================================
+    
+    // 技术类 - 项目数量趋势
+    const techProjectTrend = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '新增项目', data: [8, 12, 15, 18, 22, 25, 28, 30, 32, 35, 38, 42] },
+        { name: '完成项目', data: [5, 8, 12, 15, 18, 22, 25, 27, 29, 32, 35, 38] }
+      ]
+    };
+
+    // 技术类 - BUG数量统计
+    const techBugStats = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '新增BUG', data: [45, 58, 62, 55, 48, 52, 45, 38, 42, 35, 30, 28] },
+        { name: '已修复', data: [35, 48, 55, 50, 45, 48, 42, 35, 38, 32, 28, 25] },
+        { name: '遗留BUG', data: [10, 20, 27, 32, 35, 39, 42, 45, 49, 52, 54, 57] }
+      ]
+    };
+
+    // 技术类 - 版本发布统计
+    const techReleaseStats = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '大版本', data: [1, 2, 1, 2, 3, 2, 1, 2, 2, 3, 2, 3] },
+        { name: '小版本', data: [5, 8, 6, 10, 12, 8, 9, 11, 10, 12, 14, 15] },
+        { name: '热修复', data: [3, 5, 4, 6, 8, 5, 7, 6, 8, 9, 7, 10] }
+      ]
+    };
+
+    // 技术类指标卡
+    const techMetrics = {
+      totalProjects: { label: '项目总数', value: '156', trend: 12.5 },
+      bugFixRate: { label: 'BUG修复率', value: '85.2%', trend: 5.8 },
+      avgDevCycle: { label: '平均开发周期', value: '12.5天', trend: -8.3 },
+      codeCommits: { label: '代码提交数', value: '3,256', trend: 23.6 }
+    };
+
+    // ============================================
+    // 业务类数据 (销售部、市场部)
+    // ============================================
+    
+    // 业务类 - 销售趋势
+    const salesTrend = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '销售额(万)', data: [120, 150, 180, 200, 220, 250, 280, 300, 320, 350, 380, 420] },
+        { name: '订单数', data: [85, 95, 110, 125, 140, 155, 170, 185, 200, 215, 230, 250] }
+      ]
+    };
+
+    // 业务类 - 客户增长
+    const customerGrowth = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '新客户', data: [120, 150, 180, 200, 220, 250, 280, 300, 320, 350, 380, 420] },
+        { name: '活跃客户', data: [800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350] },
+        { name: '流失客户', data: [25, 30, 28, 32, 35, 30, 28, 32, 30, 35, 38, 40] }
+      ]
+    };
+
+    // 业务类 - 月度业绩
+    const salesPerformance = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '销售业绩', data: [120, 150, 180, 200, 220, 250, 280, 300, 320, 350, 380, 420] },
+        { name: '市场推广', data: [50, 60, 75, 80, 90, 100, 110, 120, 130, 140, 150, 160] },
+        { name: '目标达成', data: [95, 100, 105, 98, 102, 108, 110, 105, 112, 115, 118, 120] }
+      ]
+    };
+
+    // 业务类指标卡
+    const salesMetrics = {
+      totalRevenue: { label: '累计营收', value: '¥2.8M', trend: 15.2 },
+      activeCustomers: { label: '活跃客户', value: '1,350', trend: 8.6 },
+      conversionRate: { label: '转化率', value: '23.5%', trend: -2.3 },
+      avgOrderValue: { label: '平均客单价', value: '¥1,680', trend: 5.8 }
+    };
+
+    // ============================================
+    // 财务类数据
+    // ============================================
+    
+    // 财务类 - 预算与支出
+    const financeBudget = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '预算', data: [100, 120, 110, 130, 125, 140, 135, 150, 145, 160, 155, 170] },
+        { name: '实际支出', data: [95, 115, 108, 125, 120, 135, 130, 145, 140, 155, 150, 165] },
+        { name: '剩余预算', data: [5, 5, 2, 5, 5, 5, 5, 5, 5, 5, 5, 5] }
+      ]
+    };
+
+    // 财务类指标卡
+    const financeMetrics = {
+      totalBudget: { label: '年度预算', value: '¥5.8M', trend: 0 },
+      actualSpent: { label: '已支出', value: '¥3.2M', trend: 5.5 },
+      profit: { label: '净利润', value: '¥1.2M', trend: 18.3 },
+      cashFlow: { label: '现金流', value: '¥580K', trend: -3.2 }
+    };
+
+    // ============================================
+    // 人事类数据
+    // ============================================
+    
+    // 人事类 - 人员变动
+    const hrChanges = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '新入职', data: [15, 20, 18, 25, 22, 28, 25, 30, 28, 32, 30, 35] },
+        { name: '离职', data: [5, 8, 6, 10, 8, 12, 10, 12, 10, 15, 12, 18] },
+        { name: '净增长', data: [10, 12, 12, 15, 14, 16, 15, 18, 18, 17, 18, 17] }
+      ]
+    };
+
+    // 人事类指标卡
+    const hrMetrics = {
+      totalEmployees: { label: '员工总数', value: '328', trend: 12.5 },
+      hireRate: { label: '招聘完成率', value: '92.5%', trend: 3.8 },
+      turnoverRate: { label: '离职率', value: '8.2%', trend: -2.5 },
+      trainingCount: { label: '培训次数', value: '156', trend: 25.3 }
+    };
+
+    // ============================================
+    // 综合数据 (不筛选时显示汇总)
+    // ============================================
+    
+    // 综合 - 月度汇总趋势
+    const overallTrend = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '总营收(万)', data: [200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600, 680] },
+        { name: '完成项目', data: [15, 22, 30, 38, 45, 52, 58, 62, 68, 75, 82, 88] },
+        { name: '新增客户', data: [180, 220, 260, 300, 340, 380, 420, 460, 500, 540, 580, 620] }
+      ]
+    };
+
+    // 综合 - 部门业绩对比
+    const deptPerformance = {
+      xAxis: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+      series: [
+        { name: '研发部', data: [60, 72, 85, 95, 105, 115, 125, 135, 145, 155, 165, 175] },
+        { name: '销售部', data: [100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375] },
+        { name: '市场部', data: [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160] },
+        { name: '技术部', data: [40, 48, 55, 62, 70, 78, 85, 92, 100, 108, 115, 122] }
+      ]
+    };
+
+    // 综合指标卡
+    const overallMetrics = {
+      totalRevenue: { label: '全年营收', value: '¥2.8M', trend: 15.2 },
+      activeUsers: { label: '活跃用户', value: '12.5K', trend: 8.6 },
+      projectCount: { label: '项目总数', value: '156', trend: 12.5 },
+      employeeCount: { label: '员工总数', value: '328', trend: 12.5 }
+    };
+
+    // ============================================
+    // 数据获取函数
+    // ============================================
+    
+    function getDeptType(deptName) {
+      return deptTypes[deptName] || 'other';
+    }
+
+    function getDeptTypeName(type) {
+      const names = {
+        tech: '技术类 (研发/技术)',
+        sales: '业务类 (销售/市场)',
+        finance: '财务类',
+        hr: '人事类',
+        other: '其他'
+      };
+      return names[type] || '未知';
+    }
+
+    // 根据筛选条件获取对应数据
+    function getDataByFilter(dataType, filter) {
+      // 如果没有筛选，返回综合数据
+      if (!filter) {
+        if (dataType === 'line') return overallTrend;
+        if (dataType === 'bar') return deptPerformance;
+        if (dataType === 'metric') return overallMetrics;
+        return null;
+      }
+
+      const deptType = getDeptType(filter);
+
+      // 根据部门类型返回对应数据
+      if (deptType === 'tech') {
+        // 技术类
+        if (dataType === 'line') return techProjectTrend;
+        if (dataType === 'bar') return techBugStats;
+        if (dataType === 'metric') return techMetrics;
+      } else if (deptType === 'sales') {
+        // 业务类
+        if (dataType === 'line') return salesTrend;
+        if (dataType === 'bar') return customerGrowth;
+        if (dataType === 'metric') return salesMetrics;
+      } else if (deptType === 'finance') {
+        // 财务类
+        if (dataType === 'line') return financeBudget;
+        if (dataType === 'bar') return financeBudget;
+        if (dataType === 'metric') return financeMetrics;
+      } else if (deptType === 'hr') {
+        // 人事类
+        if (dataType === 'line') return hrChanges;
+        if (dataType === 'bar') return hrChanges;
+        if (dataType === 'metric') return hrMetrics;
+      }
+
+      // 默认返回综合数据
+      if (dataType === 'line') return overallTrend;
+      if (dataType === 'bar') return deptPerformance;
+      if (dataType === 'metric') return overallMetrics;
+      
+      return null;
+    }
 
     createApp({
       setup() {
@@ -612,19 +845,84 @@
         // 获取指标卡数据
         function getMetricData(widget) {
           try {
-            let data = sampleData.metrics.totalRevenue;
-            if (widget._sampleKey && sampleData.metrics[widget._sampleKey]) {
-              data = sampleData.metrics[widget._sampleKey];
+            // 如果有用户定义的JSON数据，优先使用
+            if (widget.jsonData) {
+              return JSON.parse(widget.jsonData);
             }
             
+            // 如果有筛选，根据部门类型返回对应数据
             if (activeFilter.value) {
-              return {
-                label: data.label + ' (' + activeFilter.value + ')',
-                value: data.value,
-                trend: Math.round(data.trend * (Math.random() * 0.4 + 0.8) * 10) / 10
-              };
+              const deptType = getDeptType(activeFilter.value);
+              
+              // 技术类部门（研发部、技术部）
+              if (deptType === 'tech') {
+                if (widget._dataKey === 'totalRevenue') {
+                  return techMetrics.bugFixRate;
+                } else if (widget._dataKey === 'activeUsers') {
+                  return techMetrics.avgDevCycle;
+                } else if (widget._dataKey === 'projectCount') {
+                  return techMetrics.totalProjects;
+                } else if (widget._dataKey === 'employeeCount') {
+                  return techMetrics.codeCommits;
+                }
+                return techMetrics.totalProjects;
+              }
+              
+              // 业务类部门（销售部、市场部）
+              if (deptType === 'sales') {
+                if (widget._dataKey === 'totalRevenue') {
+                  return salesMetrics.totalRevenue;
+                } else if (widget._dataKey === 'activeUsers') {
+                  return salesMetrics.activeCustomers;
+                } else if (widget._dataKey === 'projectCount') {
+                  return salesMetrics.conversionRate;
+                } else if (widget._dataKey === 'employeeCount') {
+                  return salesMetrics.avgOrderValue;
+                }
+                return salesMetrics.totalRevenue;
+              }
+              
+              // 财务类部门
+              if (deptType === 'finance') {
+                if (widget._dataKey === 'totalRevenue') {
+                  return financeMetrics.profit;
+                } else if (widget._dataKey === 'activeUsers') {
+                  return financeMetrics.totalBudget;
+                } else if (widget._dataKey === 'projectCount') {
+                  return financeMetrics.actualSpent;
+                } else if (widget._dataKey === 'employeeCount') {
+                  return financeMetrics.cashFlow;
+                }
+                return financeMetrics.totalBudget;
+              }
+              
+              // 人事类部门
+              if (deptType === 'hr') {
+                if (widget._dataKey === 'totalRevenue') {
+                  return hrMetrics.totalEmployees;
+                } else if (widget._dataKey === 'activeUsers') {
+                  return hrMetrics.hireRate;
+                } else if (widget._dataKey === 'projectCount') {
+                  return hrMetrics.turnoverRate;
+                } else if (widget._dataKey === 'employeeCount') {
+                  return hrMetrics.trainingCount;
+                }
+                return hrMetrics.totalEmployees;
+              }
             }
-            return data;
+            
+            // 没有筛选，返回综合数据
+            if (widget._dataKey === 'totalRevenue') {
+              return overallMetrics.totalRevenue;
+            } else if (widget._dataKey === 'activeUsers') {
+              return overallMetrics.activeUsers;
+            } else if (widget._dataKey === 'projectCount') {
+              return overallMetrics.projectCount;
+            } else if (widget._dataKey === 'employeeCount') {
+              return overallMetrics.employeeCount;
+            }
+            
+            return overallMetrics.totalRevenue;
           } catch (e) {
             return { label: '-', value: '-', trend: 0 };
           }
@@ -654,6 +952,7 @@
           
           updateChartOption(id, widget);
           
+          // 绑定饼图点击事件
           if (widget.type === 'pie') {
             chart.on('click', function(params) {
               if (params.data && params.data.name) {
@@ -669,51 +968,89 @@
           if (!chart) return;
           
           let data = null;
+          let option = null;
+          
           try {
+            // 如果是饼图，使用固定的部门数据
+            if (widget.type === 'pie') {
+              data = pieDeptData;
+            } else {
+              // 其他图表根据筛选获取数据
+              data = getDataByFilter(widget.type, activeFilter.value);
+            }
+            
+            // 如果有用户定义的JSON数据，优先使用
             if (widget.jsonData) {
-              data = JSON.parse(widget.jsonData);
+              try {
+                data = JSON.parse(widget.jsonData);
+              } catch (e) {
+                // JSON解析失败，使用内置数据
+              }
             }
           } catch (e) {
-            jsonError.value = 'JSON 格式错误: ' + e.message;
+            jsonError.value = '数据错误: ' + e.message;
             return;
           }
           
           if (!data) return;
           
-          if (activeFilter.value && widget.type !== 'pie') {
-            data = filterDataByDept(data, widget.type, activeFilter.value);
-          }
-          
-          let option = null;
-          
+          // 根据组件类型生成配置
           if (widget.type === 'line') {
+            const lineSeries = (data.series || []).map(s => ({
+              ...s,
+              type: 'line',
+              smooth: true,
+              symbol: 'circle',
+              symbolSize: 6
+            }));
             option = {
               tooltip: { trigger: 'axis' },
               legend: { data: data.series ? data.series.map(s => s.name) : [], bottom: 0 },
               grid: { left: 40, right: 20, top: 20, bottom: 40 },
               xAxis: { type: 'category', data: data.xAxis || [] },
               yAxis: { type: 'value' },
-              series: data.series || []
+              series: lineSeries
             };
           } else if (widget.type === 'pie') {
             option = {
+              title: {
+                text: activeFilter.value ? '点击切换筛选 (当前: ' + activeFilter.value + ')' : '点击部门进行筛选',
+                left: 'center',
+                top: 10,
+                textStyle: { fontSize: 12, color: '#6b7280' }
+              },
               tooltip: { trigger: 'item' },
               legend: { bottom: 0, left: 'center' },
               series: [{
                 type: 'pie',
-                radius: ['40%', '70%'],
+                radius: ['35%', '65%'],
                 itemStyle: { borderRadius: 10 },
-                data: data.data || []
+                label: { show: true, formatter: '{b}: {c}人 ({d}%)' },
+                emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+                data: data.data || [],
+                // 高亮当前筛选的部门
+                emphasis: {
+                  itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                  }
+                }
               }]
             };
           } else if (widget.type === 'bar') {
+            const barSeries = (data.series || []).map(s => ({
+              ...s,
+              type: 'bar',
+              barWidth: '60%'
+            }));
             option = {
               tooltip: { trigger: 'axis' },
               legend: { data: data.series ? data.series.map(s => s.name) : [], bottom: 0 },
               grid: { left: 40, right: 20, top: 20, bottom: 40 },
               xAxis: { type: 'category', data: data.xAxis || [] },
               yAxis: { type: 'value' },
-              series: data.series || []
+              series: barSeries
             };
           }
           
@@ -722,26 +1059,12 @@
           }
         }
 
-        // 过滤数据
-        function filterDataByDept(data, type, dept) {
-          if (!data) return data;
-          const filtered = JSON.parse(JSON.stringify(data));
-          
-          if ((type === 'line' || type === 'bar') && filtered.series) {
-            filtered.series = filtered.series.filter(s => s.name.includes(dept));
-            if (filtered.series.length === 0 && data.series && data.series.length > 0) {
-              filtered.series = [data.series[0]];
-            }
-          }
-          
-          return filtered;
-        }
-
         // 设置活动过滤器
         function setActiveFilter(dept) {
           activeFilter.value = dept;
-          showToastFunc('🔗 已筛选: ' + dept);
+          showToastFunc('🔗 已筛选: ' + dept + ' (' + getDeptTypeName(getDeptType(dept)) + ')');
           
+          // 更新所有图表（饼图除外，饼图保持显示部门分布）
           widgets.value.forEach(widget => {
             if (widget.type !== 'pie') {
               updateChartOption(widget.id, widget);
@@ -752,8 +1075,9 @@
         // 清除过滤器
         function clearFilter() {
           activeFilter.value = null;
-          showToastFunc('🔗 已清除筛选');
+          showToastFunc('🔗 已清除筛选，显示综合数据');
           
+          // 更新所有图表
           widgets.value.forEach(widget => {
             updateChartOption(widget.id, widget);
           });
@@ -764,6 +1088,7 @@
           theme.value = theme.value === 'light' ? 'dark' : 'light';
           document.body.setAttribute('data-theme', theme.value);
           
+          // 重新初始化所有图表
           widgets.value.forEach(widget => {
             if (widget.type !== 'metric') {
               initChart(widget.id);
@@ -798,7 +1123,7 @@
         }
 
         // 创建组件
-        function createWidget(type, x, y, sampleKey = null) {
+        function createWidget(type, x, y, dataKey = null) {
           const widget = {
             id: generateId(),
             type: type,
@@ -808,9 +1133,9 @@
             width: type === 'metric' ? 200 : 360,
             height: type === 'metric' ? 140 : 280,
             dataType: 'json',
-            jsonData: getDefaultJsonData(type),
+            jsonData: '',
             apiUrl: '',
-            _sampleKey: sampleKey || type
+            _dataKey: dataKey
           };
           
           widgets.value.push(widget);
@@ -821,16 +1146,13 @@
         }
 
         function getDefaultTitle(type) {
-          const titles = { line: '折线图', pie: '饼图', bar: '柱状图', metric: '指标卡' };
+          const titles = { 
+            line: '趋势图', 
+            pie: '部门分布 (点击筛选)', 
+            bar: '柱状图', 
+            metric: '指标卡' 
+          };
           return titles[type] || '组件';
-        }
-
-        function getDefaultJsonData(type) {
-          if (type === 'line') return JSON.stringify(sampleData.lineChartSales, null, 2);
-          if (type === 'pie') return JSON.stringify(sampleData.pieChartDept, null, 2);
-          if (type === 'bar') return JSON.stringify(sampleData.barChartMonth, null, 2);
-          if (type === 'metric') return JSON.stringify(sampleData.metrics.totalRevenue, null, 2);
-          return '';
         }
 
         // 选择组件
@@ -862,12 +1184,10 @@
           const widget = widgets.value.find(w => w.id === draggingWidgetId.value);
           if (!widget) return;
           
-          const canvas = canvasRef.value;
-          const rect = canvas.getBoundingClientRect();
-          
           let newX = event.clientX - dragOffset.x;
           let newY = event.clientY - dragOffset.y;
           
+          // 网格对齐
           newX = Math.round(newX / 20) * 20;
           newY = Math.round(newY / 20) * 20;
           
@@ -905,6 +1225,7 @@
           resizingWidget.width = Math.max(minWidth, resizeStartWidget.width + dx);
           resizingWidget.height = Math.max(minHeight, resizeStartWidget.height + dy);
           
+          // 网格对齐
           resizingWidget.width = Math.round(resizingWidget.width / 20) * 20;
           resizingWidget.height = Math.round(resizingWidget.height / 20) * 20;
           
@@ -1026,40 +1347,38 @@
           widgets.value = [];
           
           nextTick(() => {
-            // 指标卡
-            createWidget('metric', 30, 30);
-            widgets.value[widgets.value.length - 1].title = '全年营收';
-            widgets.value[widgets.value.length - 1]._sampleKey = 'totalRevenue';
+            // 第一行：指标卡 (4个)
+            createWidget('metric', 30, 30, 'totalRevenue');
+            widgets.value[widgets.value.length - 1].title = '营收指标';
+            widgets.value[widgets.value.length - 1]._dataKey = 'totalRevenue';
             
-            createWidget('metric', 260, 30);
-            widgets.value[widgets.value.length - 1].title = '活跃用户';
-            widgets.value[widgets.value.length - 1]._sampleKey = 'activeUsers';
+            createWidget('metric', 260, 30, 'activeUsers');
+            widgets.value[widgets.value.length - 1].title = '活跃客户';
+            widgets.value[widgets.value.length - 1]._dataKey = 'activeUsers';
             
-            createWidget('metric', 490, 30);
-            widgets.value[widgets.value.length - 1].title = '转化率';
-            widgets.value[widgets.value.length - 1]._sampleKey = 'conversionRate';
+            createWidget('metric', 490, 30, 'projectCount');
+            widgets.value[widgets.value.length - 1].title = '项目总数';
+            widgets.value[widgets.value.length - 1]._dataKey = 'projectCount';
             
-            createWidget('metric', 720, 30);
-            widgets.value[widgets.value.length - 1].title = '平均客单价';
-            widgets.value[widgets.value.length - 1]._sampleKey = 'avgOrderValue';
+            createWidget('metric', 720, 30, 'employeeCount');
+            widgets.value[widgets.value.length - 1].title = '员工总数';
+            widgets.value[widgets.value.length - 1]._dataKey = 'employeeCount';
             
-            // 折线图
+            // 第二行：折线图 + 饼图
             createWidget('line', 30, 200);
-            widgets.value[widgets.value.length - 1].title = '部门销售趋势（点击饼图筛选）';
+            widgets.value[widgets.value.length - 1].title = '销售趋势 (随筛选变化)';
             widgets.value[widgets.value.length - 1].width = 500;
-            widgets.value[widgets.value.length - 1].jsonData = JSON.stringify(sampleData.lineChartByDept, null, 2);
             
-            // 饼图
             createWidget('pie', 560, 200);
-            widgets.value[widgets.value.length - 1].title = '部门人员分布（点击筛选）';
+            widgets.value[widgets.value.length - 1].title = '部门分布 (点击筛选)';
             widgets.value[widgets.value.length - 1].width = 360;
             
-            // 柱状图
+            // 第三行：柱状图
             createWidget('bar', 30, 510);
-            widgets.value[widgets.value.length - 1].title = '月度客户增长';
+            widgets.value[widgets.value.length - 1].title = '客户增长 (随筛选变化)';
             widgets.value[widgets.value.length - 1].width = 890;
             
-            showToastFunc('📊 示例数据已加载');
+            showToastFunc('📊 示例数据已加载！点击饼图中的部门测试联动效果');
           });
         }
 
@@ -1079,6 +1398,7 @@
           toastMessage,
           toastType,
           canvasRef,
+          getDeptType,
           toggleTheme,
           onWidgetDragStart,
           onCanvasDrop,
