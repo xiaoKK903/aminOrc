@@ -683,6 +683,11 @@
             <span class="icon">🧠</span>
             <span class="text">表单设计器</span>
           </div>
+          
+          <div class="menu-item" @click="openFlowDesigner">
+            <span class="icon">🔄</span>
+            <span class="text">流程设计</span>
+          </div>
         </div>
       </div>
 
@@ -769,6 +774,11 @@
               <div class="icon credentials" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">🧠</div>
               <h3>智能表单设计</h3>
               <p>拖拽式表单设计器</p>
+            </div>
+            <div class="dashboard-card" @click="openFlowDesigner">
+              <div class="icon credentials" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">🔄</div>
+              <h3>审批流程设计</h3>
+              <p>可视化流程图画布</p>
             </div>
           </div>
         </div>
@@ -1506,6 +1516,10 @@
           window.location.href = '/form-designer.html';
         }
 
+        function openFlowDesigner() {
+          window.location.href = '/flow-designer.html';
+        }
+
         return {
           isLoggedIn,
           isRegister,
@@ -1552,7 +1566,8 @@
           openCredentialPools,
           openTemporaryAccess,
           openTicketAssign,
-          openFormDesigner
+          openFormDesigner,
+          openFlowDesigner
         };
       }
     }).mount('#app');
