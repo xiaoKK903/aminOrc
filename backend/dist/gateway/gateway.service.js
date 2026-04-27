@@ -60,7 +60,7 @@ let GatewayService = class GatewayService {
         this.initDynamicRoutes();
     }
     initDynamicRoutes() {
-        const apis = this.findAll();
+        const apis = this.storageService.read('gateway-apis');
         apis.forEach(api => {
             if (api.status === 'active') {
                 this.dynamicRoutes.set(api.id, api);

@@ -21,26 +21,190 @@ const REIMBURSEMENT_STATUSES = {
     PAID: 'paid',
     CANCELLED: 'cancelled'
 };
-const APPROVAL_FLOW = {
-    [REIMBURSEMENT_STATUSES.SUBMITTED]: 'pending_manager',
-    [REIMBURSEMENT_STATUSES.APPROVED]: 'pending_finance',
-    [REIMBURSEMENT_STATUSES.PAID]: 'completed'
+const BUDGET_LEVELS = {
+    GROUP: 'group',
+    COMPANY: 'company',
+    PROJECT: 'project'
 };
 let ReimbursementService = class ReimbursementService {
     storageService;
-    budgetService;
-    feeControlService;
-    constructor(storageService, budgetService, feeControlService) {
+    constructor(storageService) {
         this.storageService = storageService;
-        this.budgetService = budgetService;
-        this.feeControlService = feeControlService;
+    }
+    getBudgetById(id) {
+        const budget = this.storageService.findById('budgets', id);
+        if (!budget) {
+            throw new common_1.NotFoundException('预算不存在');
+        }
+        return budget;
+    }
+    updateBudget(budgetId, updates) {
+        return this.storageService.update('budgets', budgetId, updates);
+    }
+    createBudgetLog(log) {
+        this.storageService.create('budget-logs', log);
+    }
+    checkFeeControlRules(reimbursement, budget) {
+        const rules = this.storageService.read('fee-control-rules').filter(r => r.enabled);
+        for (const rule of rules) {
+            try {
+                const passed = this.evaluateRule(rule, reimbursement, budget);
+                if (!passed) {
+                    return { passed: false, blockingRule: rule };
+                }
+            }
+            catch (e) {
+                console.error('[FeeControl] 规则执行错误:', e.message);
+            }
+        }
+        return { passed: true };
+    }
+    evaluateRule(rule, data, budget) {
+        const FORBIDDEN_PATTERNS = [
+            /document\s*\./g, /window\s*\./g, /eval\s*\(/g,
+            /new\s+Function/g, /setTimeout\s*\(/g, /setInterval\s*\(/g,
+            /fetch\s*\(/g, /XMLHttpRequest/g, /localStorage/g,
+            /indexedDB/g, /process\s*\./g, /require\s*\(/g,
+            /__dirname/g, /__filename/g, /module\s*\./g,
+        ];
+        if (rule.condition) {
+            for (const pattern of FORBIDDEN_PATTERNS) {
+                if (pattern.test(rule.condition)) {
+                    throw new Error('脚本包含禁止的操作');
+                }
+            }
+            const context = {
+                data: JSON.parse(JSON.stringify(data)),
+                budget: JSON.parse(JSON.stringify(budget)),
+                Math,
+                Date,
+                String,
+                Number,
+                Boolean,
+                Array,
+                Object,
+                JSON,
+            };
+            const wrapperScript = `
+        "use strict";
+        const { ${Object.keys(context).join(', ')} } = sandbox;
+        try {
+          return ${rule.condition};
+        } catch (e) {
+          throw new Error('脚本执行错误: ' + e.message);
+        }
+      `;
+            const executor = new Function('sandbox', wrapperScript);
+            return !executor(context);
+        }
+        return true;
+    }
+    occupyBudget(budgetId, amount, sourceId, sourceType, description) {
+        const budget = this.getBudgetById(budgetId);
+        const occupyAmount = parseFloat(amount.toString());
+        if (budget.remainingAmount < occupyAmount) {
+            throw new common_1.BadRequestException(`预算不足，剩余: ${budget.remainingAmount}, 需要: ${occupyAmount}`);
+        }
+        const now = new Date().toISOString();
+        const log = {
+            id: (0, uuid_1.v4)(),
+            budgetId,
+            type: 'occupy',
+            amount: occupyAmount,
+            sourceId,
+            sourceType,
+            description: description || '预算占用',
+            beforeAmount: budget.remainingAmount,
+            afterAmount: budget.remainingAmount - occupyAmount,
+            createdAt: now,
+        };
+        this.createBudgetLog(log);
+        budget.occupiedAmount += occupyAmount;
+        budget.remainingAmount = budget.amount - budget.usedAmount - budget.occupiedAmount;
+        budget.updatedAt = now;
+        this.updateBudget(budgetId, {
+            occupiedAmount: budget.occupiedAmount,
+            remainingAmount: budget.remainingAmount,
+            updatedAt: now
+        });
+        return { success: true, log, budget };
+    }
+    releaseBudget(budgetId, amount, sourceId, description) {
+        const budget = this.getBudgetById(budgetId);
+        const releaseAmount = parseFloat(amount.toString());
+        if (budget.occupiedAmount < releaseAmount) {
+            throw new common_1.BadRequestException(`已占用金额不足，已占用: ${budget.occupiedAmount}, 需要释放: ${releaseAmount}`);
+        }
+        const now = new Date().toISOString();
+        const log = {
+            id: (0, uuid_1.v4)(),
+            budgetId,
+            type: 'release',
+            amount: releaseAmount,
+            sourceId,
+            sourceType: 'reimbursement',
+            description: description || '预算释放回滚',
+            beforeAmount: budget.remainingAmount,
+            afterAmount: budget.remainingAmount + releaseAmount,
+            createdAt: now,
+        };
+        this.createBudgetLog(log);
+        budget.occupiedAmount -= releaseAmount;
+        budget.remainingAmount = budget.amount - budget.usedAmount - budget.occupiedAmount;
+        budget.updatedAt = now;
+        this.updateBudget(budgetId, {
+            occupiedAmount: budget.occupiedAmount,
+            remainingAmount: budget.remainingAmount,
+            updatedAt: now
+        });
+        return { success: true, log, budget };
+    }
+    deductBudget(budgetId, amount, sourceId, sourceType, description) {
+        const budget = this.getBudgetById(budgetId);
+        const deductAmount = parseFloat(amount.toString());
+        const totalAvailable = budget.remainingAmount + budget.occupiedAmount;
+        if (totalAvailable < deductAmount) {
+            throw new common_1.BadRequestException(`可用预算不足，可用: ${totalAvailable}, 需要: ${deductAmount}`);
+        }
+        const now = new Date().toISOString();
+        let releaseFromOccupied = 0;
+        if (budget.occupiedAmount > 0) {
+            releaseFromOccupied = Math.min(budget.occupiedAmount, deductAmount);
+            budget.occupiedAmount -= releaseFromOccupied;
+        }
+        const remainingDeduct = deductAmount - releaseFromOccupied;
+        if (remainingDeduct > 0) {
+            budget.remainingAmount -= remainingDeduct;
+        }
+        budget.usedAmount += deductAmount;
+        budget.updatedAt = now;
+        const log = {
+            id: (0, uuid_1.v4)(),
+            budgetId,
+            type: 'deduct',
+            amount: deductAmount,
+            sourceId,
+            sourceType,
+            description: description || '预算扣减',
+            beforeAmount: budget.remainingAmount + budget.occupiedAmount + deductAmount,
+            afterAmount: budget.remainingAmount + budget.occupiedAmount,
+            createdAt: now,
+        };
+        this.createBudgetLog(log);
+        this.updateBudget(budgetId, {
+            usedAmount: budget.usedAmount,
+            occupiedAmount: budget.occupiedAmount,
+            remainingAmount: budget.remainingAmount,
+            updatedAt: now
+        });
+        return { success: true, log, budget };
     }
     create(createDto, userId) {
         const { title, amount, description, budgetId, category, expenseDate, invoiceNumber, invoiceAmount, attachments, items } = createDto;
         if (!budgetId) {
             throw new common_1.BadRequestException('请选择关联的预算');
         }
-        const budget = this.budgetService.findOne(budgetId);
+        const budget = this.getBudgetById(budgetId);
         const totalAmount = items && items.length > 0
             ? items.reduce((sum, item) => sum + (item.amount || 0), 0)
             : (amount || 0);
@@ -119,12 +283,12 @@ let ReimbursementService = class ReimbursementService {
         if (reimbursement.createdBy !== userId && !this.isAdmin(userId)) {
             throw new common_1.ForbiddenException('无权提交此报销单');
         }
-        const budget = this.budgetService.findOne(reimbursement.budgetId);
-        const checkResult = this.feeControlService.checkReimbursement(reimbursement, budget);
+        const budget = this.getBudgetById(reimbursement.budgetId);
+        const checkResult = this.checkFeeControlRules(reimbursement, budget);
         if (!checkResult.passed) {
             throw new common_1.BadRequestException(`费控规则拦截: ${checkResult.blockingRule?.message || '不满足报销条件'}`);
         }
-        this.budgetService.occupy(reimbursement.budgetId, reimbursement.amount, id, 'reimbursement', `报销单占用: ${reimbursement.title}`);
+        this.occupyBudget(reimbursement.budgetId, reimbursement.amount, id, 'reimbursement', `报销单占用: ${reimbursement.title}`);
         const approvalFlow = [
             { step: 1, name: '部门经理审批', status: 'pending', approver: null, approvedAt: null, comment: '' },
             { step: 2, name: '财务审批', status: 'pending', approver: null, approvedAt: null, comment: '' },
@@ -167,9 +331,8 @@ let ReimbursementService = class ReimbursementService {
         }
         else if (step === 2) {
             newStatus = REIMBURSEMENT_STATUSES.PAID;
-            const budget = this.budgetService.findOne(reimbursement.budgetId);
-            this.budgetService.release(reimbursement.budgetId, reimbursement.amount, id, '报销单支付，释放占用');
-            this.budgetService.deduct(reimbursement.budgetId, reimbursement.amount, id, 'reimbursement', `报销单扣减: ${reimbursement.title}`);
+            this.releaseBudget(reimbursement.budgetId, reimbursement.amount, id, '报销单支付，释放占用');
+            this.deductBudget(reimbursement.budgetId, reimbursement.amount, id, 'reimbursement', `报销单扣减: ${reimbursement.title}`);
             this.addHistory(id, 'pay', userId, `财务已支付: ${comment || ''}`);
         }
         const updated = this.storageService.update('reimbursements', id, {
@@ -195,7 +358,7 @@ let ReimbursementService = class ReimbursementService {
             currentStep.comment = comment || '';
         }
         if (reimbursement.status === REIMBURSEMENT_STATUSES.SUBMITTED) {
-            this.budgetService.release(reimbursement.budgetId, reimbursement.amount, id, '报销单被拒，释放占用');
+            this.releaseBudget(reimbursement.budgetId, reimbursement.amount, id, '报销单被拒，释放占用');
         }
         const updated = this.storageService.update('reimbursements', id, {
             status: REIMBURSEMENT_STATUSES.REJECTED,
@@ -215,7 +378,7 @@ let ReimbursementService = class ReimbursementService {
             throw new common_1.ForbiddenException('无权撤销此报销单');
         }
         if (reimbursement.status === REIMBURSEMENT_STATUSES.SUBMITTED) {
-            this.budgetService.release(reimbursement.budgetId, reimbursement.amount, id, '报销单撤销，释放占用');
+            this.releaseBudget(reimbursement.budgetId, reimbursement.amount, id, '报销单撤销，释放占用');
         }
         const updated = this.storageService.update('reimbursements', id, {
             status: REIMBURSEMENT_STATUSES.CANCELLED,
@@ -281,17 +444,19 @@ let ReimbursementService = class ReimbursementService {
             '季度总结会议费',
             '员工培训费用'
         ];
+        const budgets = this.storageService.read('budgets');
         for (let i = 0; i < count; i++) {
             const category = categories[Math.floor(Math.random() * categories.length)];
             const amount = Math.floor(Math.random() * 5000) + 100;
             const statuses = Object.values(REIMBURSEMENT_STATUSES);
             const status = statuses[Math.floor(Math.random() * statuses.length)];
+            const budgetId = budgets.length > 0 ? budgets[Math.floor(Math.random() * budgets.length)].id : null;
             const reimbursement = {
                 id: (0, uuid_1.v4)(),
                 title: titles[i % titles.length] + ` (测试数据 ${i + 1})`,
                 amount,
                 description: `这是一条测试数据，模拟${category}报销`,
-                budgetId: null,
+                budgetId,
                 category,
                 expenseDate: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
                 invoiceNumber: `INV-${Date.now()}-${i}`,
@@ -325,5 +490,5 @@ let ReimbursementService = class ReimbursementService {
 exports.ReimbursementService = ReimbursementService;
 exports.ReimbursementService = ReimbursementService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [json_storage_service_1.JsonStorageService, Object, Object])
+    __metadata("design:paramtypes", [json_storage_service_1.JsonStorageService])
 ], ReimbursementService);
