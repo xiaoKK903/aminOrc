@@ -1,0 +1,137 @@
+[
+  {
+    "id": "api_1777248669069_sample_1",
+    "name": "用户信息聚合接口",
+    "method": "GET",
+    "path": "/api/aggregation/v1/user-info",
+    "description": "聚合用户基本信息、订单统计、积分余额",
+    "status": "active",
+    "timeout": 30000,
+    "cacheTtl": 0,
+    "params": [
+      {
+        "name": "userId",
+        "in": "query",
+        "type": "number",
+        "required": true,
+        "default": "",
+        "description": "用户ID"
+      }
+    ],
+    "aggregationScript": "// 用户信息聚合脚本\nconst userData = results.userService || {};\nconst orderData = results.orderService || {};\nconst paymentData = results.paymentService || {};\n\nreturn {\n  success: true,\n  user: {\n    id: userData.id || params.userId,\n    name: userData.name || '未知用户',\n    email: userData.email,\n    phone: userData.phone\n  },\n  orders: {\n    total: orderData.total || 0,\n    pending: orderData.pending || 0,\n    completed: orderData.completed || 0\n  },\n  payment: {\n    balance: paymentData.balance || 0,\n    points: paymentData.points || 0,\n    level: paymentData.level || '普通会员'\n  },\n  aggregatedAt: Date.now()\n};",
+    "flowNodes": [
+      {
+        "id": "node_user_001",
+        "type": "http",
+        "name": "获取用户信息",
+        "description": "调用用户服务获取基本信息",
+        "config": {
+          "method": "GET",
+          "url": "http://localhost:3000/api/users/{{userId}}",
+          "headers": {},
+          "timeout": 10000
+        },
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "node_order_002",
+        "type": "http",
+        "name": "获取订单统计",
+        "description": "调用订单服务获取统计数据",
+        "config": {
+          "method": "GET",
+          "url": "http://localhost:3000/api/orders/stats?userId={{userId}}",
+          "headers": {},
+          "timeout": 10000
+        },
+        "x": 280,
+        "y": 50
+      },
+      {
+        "id": "node_payment_003",
+        "type": "http",
+        "name": "获取账户信息",
+        "description": "调用支付服务获取余额和积分",
+        "config": {
+          "method": "GET",
+          "url": "http://localhost:3000/api/payments/account/{{userId}}",
+          "headers": {},
+          "timeout": 10000
+        },
+        "x": 510,
+        "y": 50
+      }
+    ],
+    "rateLimit": {
+      "enabled": true,
+      "maxQps": 100,
+      "strategy": "reject"
+    },
+    "circuitBreaker": {
+      "errorThreshold": 50,
+      "recoveryTime": 30000
+    },
+    "createdAt": 1777162269069,
+    "updatedAt": 1777248669069,
+    "publishedAt": 1777205469069
+  },
+  {
+    "id": "api_1777248669069_sample_2",
+    "name": "订单创建接口",
+    "method": "POST",
+    "path": "/api/aggregation/v1/orders",
+    "description": "创建订单并扣减库存",
+    "status": "draft",
+    "timeout": 30000,
+    "cacheTtl": 0,
+    "params": [],
+    "aggregationScript": "// 订单创建聚合脚本\nconst createResult = results.createOrder || {};\nconst inventoryResult = results.updateInventory || {};\n\nif (!createResult.success) {\n  throw new Error('订单创建失败: ' + (createResult.error || '未知错误'));\n}\n\nreturn {\n  success: true,\n  orderId: createResult.orderId,\n  orderNo: createResult.orderNo,\n  inventoryUpdated: inventoryResult.success || false,\n  createdAt: Date.now()\n};",
+    "flowNodes": [
+      {
+        "id": "node_create_001",
+        "type": "http",
+        "name": "创建订单",
+        "description": "调用订单服务创建订单",
+        "config": {
+          "method": "POST",
+          "url": "http://localhost:3000/api/orders",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "timeout": 15000
+        },
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "node_inventory_002",
+        "type": "http",
+        "name": "扣减库存",
+        "description": "调用库存服务扣减库存",
+        "config": {
+          "method": "POST",
+          "url": "http://localhost:3000/api/inventory/deduct",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "timeout": 10000
+        },
+        "x": 280,
+        "y": 50
+      }
+    ],
+    "rateLimit": {
+      "enabled": false,
+      "maxQps": 50,
+      "strategy": "reject"
+    },
+    "circuitBreaker": {
+      "errorThreshold": 30,
+      "recoveryTime": 60000
+    },
+    "createdAt": 1777075869069,
+    "updatedAt": 1777248669069,
+    "publishedAt": null
+  }
+]

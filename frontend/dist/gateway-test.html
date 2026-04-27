@@ -3,386 +3,257 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>测试页面 - 零代码聚合网关</title>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <title>网关测试页面</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f7fa;
-      padding: 20px;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 8px;
-      padding: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    h1 { font-size: 24px; margin-bottom: 20px; color: #333; }
-    .btn {
-      padding: 10px 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      margin-right: 10px;
-      margin-bottom: 10px;
-    }
-    .btn:hover { opacity: 0.9; }
-    .btn.secondary {
-      background: #f0f0f0;
-      color: #333;
-    }
-    .log-box {
-      background: #1e1e1e;
-      color: #d4d4d4;
-      padding: 16px;
-      border-radius: 6px;
-      font-family: 'Consolas', monospace;
-      font-size: 13px;
-      margin-top: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .log-item { margin-bottom: 8px; }
-    .log-success { color: #52c41a; }
-    .log-error { color: #ff4d4f; }
-    .log-info { color: #1890ff; }
-    .status {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin-left: 10px;
-    }
-    .status.ok { background: #f6ffed; color: #52c41a; }
-    .status.fail { background: #fff2f0; color: #ff4d4f; }
-    .section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid #eee; }
-    .section:last-child { border-bottom: none; }
-    h2 { font-size: 16px; margin-bottom: 12px; color: #666; }
-    .api-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .api-item {
-      padding: 12px;
-      background: #fafafa;
-      border-radius: 6px;
-      cursor: pointer;
-      border: 2px solid transparent;
-    }
-    .api-item:hover { background: #f0f0f0; }
-    .api-item.active {
-      border-color: #667eea;
-      background: rgba(102, 126, 234, 0.05);
-    }
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      outline: none;
-    }
-    input:focus, select:focus, textarea:focus { border-color: #667eea; }
-    .row { display: flex; gap: 16px; }
-    .col { flex: 1; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f7fa; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    h1 { color: #333; font-size: 20px; margin-bottom: 20px; }
+    .section { margin-bottom: 20px; padding: 16px; background: #f9f9f9; border-radius: 6px; }
+    .section-title { font-weight: 600; margin-bottom: 10px; color: #666; }
+    .status-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+    .status-item:last-child { border-bottom: none; }
+    .status-label { color: #666; }
+    .status-value { font-weight: 500; }
+    .status-value.success { color: #52c41a; }
+    .status-value.error { color: #ff4d4f; }
+    .log-area { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+    .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin-right: 10px; margin-bottom: 10px; }
+    .btn.primary { background: #667eea; color: white; }
+    .btn.primary:hover { background: #5568d3; }
+    .btn.secondary { background: #f0f0f0; color: #333; }
+    .btn.secondary:hover { background: #e0e0e0; }
+    .error-box { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; padding: 12px; border-radius: 6px; margin: 10px 0; }
+    .success-box { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; padding: 12px; border-radius: 6px; margin: 10px 0; }
   </style>
 </head>
 <body>
-  <div id="app">
-    <div class="container">
-      <h1>
-        零代码聚合网关 - 测试页面
-        <span v-if="vueReady" class="status ok">Vue 已就绪</span>
-        <span v-else class="status fail">Vue 未就绪</span>
-      </h1>
-
-      <div class="section">
-        <h2>1. 基础功能测试</h2>
-        <button class="btn" @click="testCreateNewApi">新建接口测试</button>
-        <button class="btn secondary" @click="testLoadApis">加载接口列表</button>
-        <button class="btn secondary" @click="clearLogs">清空日志</button>
-      </div>
-
-      <div class="section">
-        <h2>2. 接口列表 ({{ apis.length }})</h2>
-        <div class="api-list">
-          <div v-for="api in apis" :key="api.id" 
-               class="api-item" 
-               :class="{ active: selectedApi?.id === api.id }"
-               @click="selectApi(api)">
-            <strong>{{ api.method }} {{ api.path }}</strong>
-            <br>
-            <small>{{ api.name }} - {{ api.status === 'active' ? '已发布' : '草稿' }}</small>
-          </div>
-          <div v-if="apis.length === 0" style="color: #999; padding: 20px; text-align: center;">
-            暂无接口，点击"新建接口测试"创建
-          </div>
-        </div>
-      </div>
-
-      <div v-if="selectedApi" class="section">
-        <h2>3. 选中的接口配置</h2>
-        <div class="row">
-          <div class="col">
-            <div class="form-group">
-              <label>请求方法</label>
-              <select v-model="form.method">
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-              </select>
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-group">
-              <label>接口路径</label>
-              <input v-model="form.path" placeholder="/api/example">
-            </div>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>接口名称</label>
-          <input v-model="form.name" placeholder="输入接口名称">
-        </div>
-        <div class="form-group">
-          <label>描述</label>
-          <textarea v-model="form.description" rows="3" placeholder="接口描述"></textarea>
-        </div>
-        <button class="btn" @click="saveConfig">保存配置</button>
-        <button class="btn secondary" @click="publishApi">发布接口</button>
-        <button class="btn secondary" @click="deleteApi">删除接口</button>
-      </div>
-
-      <div class="section">
-        <h2>4. 执行日志</h2>
-        <div class="log-box">
-          <div v-for="(log, idx) in logs" :key="idx" class="log-item" :class="'log-' + log.type">
-            [{{ log.time }}] {{ log.message }}
-          </div>
-          <div v-if="logs.length === 0" style="color: #666;">
-            暂无日志，点击上方按钮开始测试
-          </div>
-        </div>
-      </div>
+  <div class="container">
+    <h1>🔍 零代码聚合网关 - 诊断测试</h1>
+    
+    <div class="section">
+      <div class="section-title">📋 资源加载状态</div>
+      <div id="resource-status"></div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">🛠️ 功能测试按钮</div>
+      <button class="btn primary" onclick="testCreateNewApi()">测试：新建接口</button>
+      <button class="btn primary" onclick="testLoadApis()">测试：加载接口列表</button>
+      <button class="btn primary" onclick="testGatewayConfig()">测试：GatewayConfig 模块</button>
+      <button class="btn secondary" onclick="clearStorage()">清除 localStorage</button>
+      <button class="btn secondary" onclick="openGatewayPage()">打开主页面</button>
+    </div>
+    
+    <div id="result-area"></div>
+    
+    <div class="section">
+      <div class="section-title">📝 执行日志</div>
+      <div class="log-area" id="log-area"></div>
     </div>
   </div>
 
   <script>
-    const { createApp, ref, reactive, computed, onMounted } = Vue;
-
-    const STORAGE_KEY = 'gateway_apis_test';
-
-    function generateId() {
-      return 'api_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const logArea = document.getElementById('log-area');
+    const resultArea = document.getElementById('result-area');
+    const resourceStatus = document.getElementById('resource-status');
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = {
+        info: 'ℹ️',
+        success: '✅',
+        error: '❌',
+        warn: '⚠️'
+      };
+      logArea.textContent += `[${timestamp}] ${prefix[type] || ''} ${message}\n`;
+      logArea.scrollTop = logArea.scrollHeight;
+      console.log(message);
     }
-
-    function getApis() {
+    
+    function showResult(html) {
+      resultArea.innerHTML = html;
+    }
+    
+    // 检查资源加载状态
+    function checkResources() {
+      log('开始检查资源加载状态...');
+      
+      const checks = [
+        { name: 'Vue', check: () => typeof Vue !== 'undefined' },
+        { name: 'GatewayConfig', check: () => typeof GatewayConfig !== 'undefined' },
+        { name: 'GatewayFlow', check: () => typeof GatewayFlow !== 'undefined' },
+        { name: 'GatewaySandbox', check: () => typeof GatewaySandbox !== 'undefined' },
+        { name: 'GatewayMonitor', check: () => typeof GatewayMonitor !== 'undefined' }
+      ];
+      
+      let html = '';
+      checks.forEach(check => {
+        const isLoaded = check.check();
+        const status = isLoaded ? 'success' : 'error';
+        const text = isLoaded ? '已加载 ✓' : '未加载 ✗';
+        html += `<div class="status-item">
+          <span class="status-label">${check.name}</span>
+          <span class="status-value ${status}">${text}</span>
+        </div>`;
+        
+        if (isLoaded) {
+          log(`${check.name} 已成功加载`, 'success');
+        } else {
+          log(`${check.name} 未加载`, 'error');
+        }
+      });
+      
+      resourceStatus.innerHTML = html;
+    }
+    
+    // 测试 GatewayConfig 模块
+    function testGatewayConfig() {
+      log('开始测试 GatewayConfig 模块...');
+      
       try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
+        // 测试 generateId
+        const id = GatewayConfig.generateId();
+        log(`generateId: ${id}`, 'success');
+        
+        // 测试 getApis
+        const apis = GatewayConfig.getApis();
+        log(`getApis: 返回 ${apis.length} 个接口`, 'success');
+        
+        // 测试 getMockServices
+        const services = GatewayConfig.getMockServices();
+        log(`getMockServices: 返回 ${services.length} 个模拟服务`, 'success');
+        
+        // 测试 initSampleData
+        GatewayConfig.initSampleData();
+        const apisAfterInit = GatewayConfig.getApis();
+        log(`initSampleData 后: ${apisAfterInit.length} 个接口`, 'success');
+        
+        showResult(`<div class="success-box">
+          <strong>✅ GatewayConfig 模块测试通过！</strong><br>
+          - 接口数量: ${apisAfterInit.length}<br>
+          - 模拟服务: ${services.length} 个
+        </div>`);
+        
       } catch (e) {
-        console.error('Failed to load APIs:', e);
-        return [];
+        log(`GatewayConfig 测试失败: ${e.message}`, 'error');
+        log(`堆栈: ${e.stack}`, 'error');
+        showResult(`<div class="error-box">
+          <strong>❌ GatewayConfig 模块测试失败！</strong><br>
+          错误: ${e.message}
+        </div>`);
       }
     }
-
-    function saveApis(apis) {
+    
+    // 测试加载接口列表
+    function testLoadApis() {
+      log('开始测试加载接口列表...');
+      
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(apis));
+        const apis = GatewayConfig.getApis();
+        log(`当前 localStorage 中有 ${apis.length} 个接口`);
+        
+        if (apis.length === 0) {
+          log('接口列表为空，初始化示例数据...');
+          GatewayConfig.initSampleData();
+          const newApis = GatewayConfig.getApis();
+          log(`初始化后有 ${newApis.length} 个接口`, 'success');
+          
+          let html = '<div class="section"><div class="section-title">📋 接口列表</div>';
+          newApis.forEach((api, idx) => {
+            html += `<div class="status-item">
+              <span class="status-label">[${idx + 1}] ${api.method} ${api.path}</span>
+              <span class="status-value">${api.name}</span>
+            </div>`;
+          });
+          html += '</div>';
+          showResult(html);
+        } else {
+          let html = '<div class="section"><div class="section-title">📋 接口列表</div>';
+          apis.forEach((api, idx) => {
+            html += `<div class="status-item">
+              <span class="status-label">[${idx + 1}] ${api.method} ${api.path}</span>
+              <span class="status-value">${api.name}</span>
+            </div>`;
+          });
+          html += '</div>';
+          showResult(html);
+        }
+        
       } catch (e) {
-        console.error('Failed to save APIs:', e);
+        log(`加载接口列表失败: ${e.message}`, 'error');
       }
     }
-
-    function addApi(api) {
-      const apis = getApis();
-      apis.push(api);
-      saveApis(apis);
-      return api;
-    }
-
-    function updateApi(id, updates) {
-      const apis = getApis();
-      const idx = apis.findIndex(a => a.id === id);
-      if (idx > -1) {
-        apis[idx] = { ...apis[idx], ...updates };
-        saveApis(apis);
-        return apis[idx];
-      }
-      return null;
-    }
-
-    function deleteApiById(id) {
-      const apis = getApis();
-      const filtered = apis.filter(a => a.id !== id);
-      saveApis(filtered);
-    }
-
-    createApp({
-      setup() {
-        const vueReady = ref(false);
-        const apis = ref([]);
-        const selectedApi = ref(null);
-        const logs = ref([]);
-
-        const form = reactive({
+    
+    // 测试新建接口
+    function testCreateNewApi() {
+      log('开始测试新建接口...');
+      
+      try {
+        const newApi = {
+          id: GatewayConfig.generateId(),
+          name: '测试接口 ' + Date.now(),
           method: 'GET',
-          path: '',
-          name: '',
-          description: ''
-        });
-
-        function addLog(message, type = 'info') {
-          const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-          logs.value.unshift({ time, message, type });
-          if (logs.value.length > 50) {
-            logs.value.pop();
-          }
-        }
-
-        function clearLogs() {
-          logs.value = [];
-        }
-
-        function testCreateNewApi() {
-          addLog('开始新建接口测试...', 'info');
-          
-          const newApi = {
-            id: generateId(),
-            method: ['GET', 'POST', 'PUT'][Math.floor(Math.random() * 3)],
-            path: '/api/test/' + Date.now(),
-            name: '测试接口 ' + (apis.value.length + 1),
-            description: '自动创建的测试接口',
-            status: 'draft',
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-          };
-
-          addApi(newApi);
-          apis.value = getApis();
-          
-          addLog('接口创建成功: ' + newApi.method + ' ' + newApi.path, 'success');
-          addLog('当前接口总数: ' + apis.value.length, 'info');
-        }
-
-        function testLoadApis() {
-          addLog('加载接口列表...', 'info');
-          apis.value = getApis();
-          addLog('加载完成，共 ' + apis.value.length + ' 个接口', 'success');
-        }
-
-        function selectApi(api) {
-          addLog('选中接口: ' + api.method + ' ' + api.path, 'info');
-          selectedApi.value = api;
-          
-          form.method = api.method;
-          form.path = api.path;
-          form.name = api.name;
-          form.description = api.description || '';
-        }
-
-        function saveConfig() {
-          if (!selectedApi.value) {
-            addLog('请先选择一个接口', 'error');
-            return;
-          }
-
-          if (!form.path) {
-            addLog('请输入接口路径', 'error');
-            return;
-          }
-
-          if (!form.name) {
-            addLog('请输入接口名称', 'error');
-            return;
-          }
-
-          const updated = updateApi(selectedApi.value.id, {
-            method: form.method,
-            path: form.path,
-            name: form.name,
-            description: form.description,
-            updatedAt: Date.now()
-          });
-
-          if (updated) {
-            apis.value = getApis();
-            selectedApi.value = updated;
-            addLog('配置保存成功: ' + form.method + ' ' + form.path, 'success');
-          } else {
-            addLog('保存失败', 'error');
-          }
-        }
-
-        function publishApi() {
-          if (!selectedApi.value) {
-            addLog('请先选择一个接口', 'error');
-            return;
-          }
-
-          const updated = updateApi(selectedApi.value.id, {
-            status: 'active',
-            publishedAt: Date.now(),
-            updatedAt: Date.now()
-          });
-
-          if (updated) {
-            apis.value = getApis();
-            selectedApi.value = updated;
-            addLog('接口已发布: ' + updated.path, 'success');
-          }
-        }
-
-        function deleteApi() {
-          if (!selectedApi.value) {
-            addLog('请先选择一个接口', 'error');
-            return;
-          }
-
-          const path = selectedApi.value.path;
-          deleteApiById(selectedApi.value.id);
-          apis.value = getApis();
-          selectedApi.value = null;
-          
-          addLog('接口已删除: ' + path, 'success');
-        }
-
-        onMounted(() => {
-          vueReady.value = true;
-          addLog('Vue 3 初始化完成', 'success');
-          addLog('localStorage 可用: ' + (typeof localStorage !== 'undefined' ? '是' : '否'), 'info');
-          
-          apis.value = getApis();
-          addLog('已加载 ' + apis.value.length + ' 个接口', 'info');
-        });
-
-        return {
-          vueReady,
-          apis,
-          selectedApi,
-          logs,
-          form,
-          testCreateNewApi,
-          testLoadApis,
-          clearLogs,
-          selectApi,
-          saveConfig,
-          publishApi,
-          deleteApi
+          path: '/api/test/' + Date.now(),
+          description: '这是一个测试接口',
+          status: 'draft',
+          timeout: 30000,
+          cacheTtl: 0,
+          params: [],
+          aggregationScript: '',
+          flowNodes: [],
+          rateLimit: { enabled: false, maxQps: 100, strategy: 'reject' },
+          circuitBreaker: { errorThreshold: 50, recoveryTime: 30 },
+          createdAt: Date.now(),
+          updatedAt: Date.now()
         };
+        
+        GatewayConfig.addApi(newApi);
+        log(`新建接口成功: ${newApi.name}`, 'success');
+        
+        const apis = GatewayConfig.getApis();
+        log(`当前接口总数: ${apis.length}`, 'success');
+        
+        showResult(`<div class="success-box">
+          <strong>✅ 新建接口测试通过！</strong><br>
+          - 接口名称: ${newApi.name}<br>
+          - 接口路径: ${newApi.method} ${newApi.path}<br>
+          - 当前接口总数: ${apis.length}
+        </div>`);
+        
+      } catch (e) {
+        log(`新建接口失败: ${e.message}`, 'error');
+        log(`堆栈: ${e.stack}`, 'error');
       }
-    }).mount('#app');
+    }
+    
+    // 清除 localStorage
+    function clearStorage() {
+      if (confirm('确定要清除所有网关数据吗？')) {
+        localStorage.removeItem('gateway_apis');
+        log('已清除 localStorage 中的网关数据', 'warn');
+        showResult('<div class="success-box">已清除所有网关数据</div>');
+      }
+    }
+    
+    // 打开主页面
+    function openGatewayPage() {
+      window.open('gateway.html', '_blank');
+    }
+    
+    // 页面加载时执行检查
+    window.onload = function() {
+      log('页面加载完成，开始诊断...');
+      checkResources();
+    };
+    
+    // 捕获全局错误
+    window.onerror = function(message, source, lineno, colno, error) {
+      log(`全局错误: ${message} (${source}:${lineno})`, 'error');
+      if (error && error.stack) {
+        log(`错误堆栈: ${error.stack}`, 'error');
+      }
+      return false;
+    };
   </script>
 </body>
 </html>
