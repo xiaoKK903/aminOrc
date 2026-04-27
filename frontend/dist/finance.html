@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>资金管理中心</title>
+  <link rel="stylesheet" href="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #667eea; --success: #52c41a; --warning: #faad14; --danger: #ff4d4f; --info: #1890ff;
+      --bg: #f5f7fa; --card-bg: #ffffff; --text: #333333; --text-secondary: #666666;
+      --text-light: #999999; --border: #e5e7eb;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); min-height: 100vh; }
+    .header {
+      height: 64px; background: var(--card-bg); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .header-icon {
+      width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white;
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .btn {
+      padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg);
+      border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn.primary { background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%); border-color: transparent; color: white; }
+    .btn.primary:hover { opacity: 0.9; }
+    .btn.danger { background: var(--danger); color: white; border-color: transparent; }
+    .container { display: flex; margin-top: 64px; min-height: calc(100vh - 64px); }
+    .sidebar { width: 220px; background: var(--card-bg); border-right: 1px solid var(--border); padding: 16px 0; }
+    .menu-item {
+      padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+      transition: all 0.2s; border-left: 3px solid transparent;
+    }
+    .menu-item:hover { background: var(--bg); }
+    .menu-item.active { background: rgba(102, 126, 234, 0.1); border-left-color: var(--primary); color: var(--primary); }
+    .menu-icon { font-size: 18px; }
+    .menu-text { font-size: 14px; }
+    .content { flex: 1; padding: 24px; overflow-y: auto; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 600; }
+    .card { background: var(--card-bg); border-radius: 8px; margin-bottom: 20px; }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-body { padding: 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--card-bg); padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary);
+    }
+    .stat-value { font-size: 28px; font-weight: 600; color: var(--primary); }
+    .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+    .stat-card.success { border-left-color: var(--success); }
+    .stat-card.success .stat-value { color: var(--success); }
+    .stat-card.warning { border-left-color: var(--warning); }
+    .stat-card.warning .stat-value { color: var(--warning); }
+    .stat-card.danger { border-left-color: var(--danger); }
+    .stat-card.danger .stat-value { color: var(--danger); }
+    .toast {
+      position: fixed; top: 80px; right: 24px; z-index: 1000;
+      padding: 12px 20px; border-radius: 6px; font-size: 14px;
+      animation: slideIn 0.3s ease;
+    }
+    .toast.success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+    .toast.error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .loading { text-align: center; padding: 40px; color: var(--text-light); }
+    .loading-spinner {
+      display: inline-block; width: 24px; height: 24px;
+      border: 2px solid var(--border); border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tree-node { padding: 8px 0; }
+    .tree-node-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+    .tree-node-header:hover { background: var(--bg); }
+    .tree-node-header.selected { background: rgba(102, 126, 234, 0.1); }
+    .tree-expand { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    .tree-icon { font-size: 16px; }
+    .tree-name { flex: 1; font-size: 14px; }
+    .tree-amount { font-size: 13px; color: var(--text-secondary); }
+    .tree-children { padding-left: 28px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .badge.draft { background: #f5f5f5; color: #999; }
+    .badge.active { background: #e6f7ff; color: #1890ff; }
+    .badge.submitted { background: #fffbe6; color: #faad14; }
+    .badge.approved { background: #f6ffed; color: #52c41a; }
+    .badge.rejected { background: #fff2f0; color: #ff4d4f; }
+    .progress-bar { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .progress-fill.success { background: var(--success); }
+    .progress-fill.warning { background: var(--warning); }
+    .progress-fill.danger { background: var(--danger); }
+    .chart-container { width: 100%; height: 350px; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: var(--text-light); }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .modal-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal { background: var(--card-bg); border-radius: 8px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 16px; font-weight: 600; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-light); }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; }
+    .form-row { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 200px; }
+    .form-group.full { flex: 1 1 100%; }
+    .form-label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary); }
+    .form-textarea { min-height: 100px; resize: vertical; }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 12px 14px; border: 1px solid var(--border); text-align: left; font-size: 13px; }
+    .table th { background: var(--bg); font-weight: 500; }
+    .table tr:hover { background: var(--bg); }
+    .action-link { color: var(--primary); cursor: pointer; margin-right: 8px; text-decoration: none; }
+    .action-link:hover { text-decoration: underline; }
+    .action-link.danger { color: var(--danger); }
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 1px; }
+    .tab {
+      padding: 10px 20px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent;
+      transition: all 0.2s; color: var(--text-secondary);
+    }
+    .tab:hover { color: var(--primary); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .btn-sm { padding: 4px 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div v-if="toast.show" class="toast" :class="toast.type">{{ toast.message }}</div>
+
+    <div class="header">
+      <div class="header-left">
+        <button class="btn" @click="goBack">← 返回</button>
+        <div class="header-title">
+          <div class="header-icon">💰</div>
+          <span>资金管理中心</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn" @click="generateMockData">🧪 生成测试数据</button>
+        <button class="btn danger" @click="clearMockData">🗑️ 清空数据</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="sidebar">
+        <div class="menu-item" :class="{ active: currentMenu === 'dashboard' }" @click="currentMenu = 'dashboard'">
+          <span class="menu-icon">📊</span>
+          <span class="menu-text">数据看板</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'budget' }" @click="currentMenu = 'budget'">
+          <span class="menu-icon">📁</span>
+          <span class="menu-text">预算管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'reimbursement' }" @click="currentMenu = 'reimbursement'">
+          <span class="menu-icon">📝</span>
+          <span class="menu-text">报销管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'bill' }" @click="currentMenu = 'bill'">
+          <span class="menu-icon">📋</span>
+          <span class="menu-text">账单管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'fee-control' }" @click="currentMenu = 'fee-control'">
+          <span class="menu-icon">⚖️</span>
+          <span class="menu-text">费控规则</span>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- 数据看板 -->
+        <div v-if="currentMenu === 'dashboard'">
+          <div class="page-header">
+            <div class="page-title">📊 数据看板</div>
+          </div>
+          
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <div style="margin-top: 10px;">加载中...</div>
+          </div>
+
+          <div v-else>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">{{ formatAmount(budgetStats?.summary?.totalBudget) }}</div>
+                <div class="stat-label">总预算金额</div>
+              </div>
+              <div class="stat-card success">
+                <div class="stat-value">{{ formatAmount(budgetStats?.summary?.totalUsed) }}</div>
+                <div class="stat-label">已使用金额</div>
+              </div>
+              <div class="stat-card warning">
+                <div class="stat-value">{{ formatAmount(budgetStats?.summary?.totalOccupied) }}</div>
+                <div class="stat-label">已占用金额</div>
+              </div>
+              <div class="stat-card danger">
+                <div class="stat-value">{{ budgetStats?.summary?.utilizationRate || 0 }}%</div>
+                <div class="stat-label">预算使用率</div>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">{{ reimbursementStats?.total || 0 }}</div>
+                <div class="stat-label">报销单总数</div>
+              </div>
+              <div class="stat-card success">
+                <div class="stat-value">{{ formatAmount(reimbursementStats?.totalAmount) }}</div>
+                <div class="stat-label">报销总金额</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ billStats?.total || 0 }}</div>
+                <div class="stat-label">账单总数</div>
+              </div>
+              <div class="stat-card success">
+                <div class="stat-value">{{ billStats?.matchRate || 0 }}%</div>
+                <div class="stat-label">账单匹配率</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">预算使用统计</div>
+              </div>
+              <div class="card-body">
+                <div class="chart-container" ref="budgetChartRef"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 预算管理 -->
+        <div v-else-if="currentMenu === 'budget'">
+          <div class="page-header">
+            <div class="page-title">📁 预算管理</div>
+            <button class="btn primary" @click="openBudgetModal">+ 新建预算</button>
+          </div>
+
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+          </div>
+
+          <div v-else class="card">
+            <div class="card-header">
+              <div class="card-title">预算树形结构</div>
+            </div>
+            <div class="card-body">
+              <div v-if="budgetTree.length === 0" class="empty-state">
+                <div class="empty-icon">📁</div>
+                <div class="empty-text">暂无预算数据，点击右上角"新建预算"开始创建</div>
+              </div>
+              <div v-else>
+                <template v-for="node in budgetTree" :key="node.id">
+                  <div class="tree-node">
+                    <div class="tree-node-header" :class="{ selected: selectedBudget?.id === node.id }" @click="selectBudget(node)">
+                      <span class="tree-expand" v-if="node.children?.length > 0" @click.stop="toggleNode(node)">
+                        {{ expandedNodes[node.id] ? '▼' : '▶' }}
+                      </span>
+                      <span class="tree-expand" v-else></span>
+                      <span class="tree-icon">{{ getBudgetIcon(node.level) }}</span>
+                      <span class="tree-name">
+                        {{ node.name }}
+                        <span class="badge" :class="node.status">{{ node.status === 'active' ? '已启用' : '草稿' }}</span>
+                      </span>
+                      <span class="tree-amount">
+                        预算: {{ formatAmount(node.amount) }} | 剩余: {{ formatAmount(node.remainingAmount) }}
+                      </span>
+                    </div>
+                    <div class="progress-bar" style="margin-left: 48px;">
+                      <div class="progress-fill" 
+                           :class="getProgressClass(node.usedAmount, node.amount)"
+                           :style="{ width: getProgressPercent(node.usedAmount, node.amount) + '%' }">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="tree-children" v-if="node.children?.length > 0 && expandedNodes[node.id]">
+                    <template v-for="child in node.children" :key="child.id">
+                      <div class="tree-node">
+                        <div class="tree-node-header" :class="{ selected: selectedBudget?.id === child.id }" @click="selectBudget(child)">
+                          <span class="tree-expand"></span>
+                          <span class="tree-icon">{{ getBudgetIcon(child.level) }}</span>
+                          <span class="tree-name">
+                            {{ child.name }}
+                            <span class="badge" :class="child.status">{{ child.status === 'active' ? '已启用' : '草稿' }}</span>
+                          </span>
+                          <span class="tree-amount">
+                            预算: {{ formatAmount(child.amount) }} | 剩余: {{ formatAmount(child.remainingAmount) }}
+                          </span>
+                        </div>
+                        <div class="progress-bar" style="margin-left: 48px;">
+                          <div class="progress-fill" 
+                               :class="getProgressClass(child.usedAmount, child.amount)"
+                               :style="{ width: getProgressPercent(child.usedAmount, child.amount) + '%' }">
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="selectedBudget" class="card">
+            <div class="card-header">
+              <div class="card-title">预算详情: {{ selectedBudget.name }}</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn" @click="editBudget">✏️ 编辑</button>
+                <button class="btn danger" @click="deleteBudget">🗑️ 删除</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="stat-card">
+                  <div class="stat-value">{{ formatAmount(selectedBudget.amount) }}</div>
+                  <div class="stat-label">预算金额</div>
+                </div>
+                <div class="stat-card success">
+                  <div class="stat-value">{{ formatAmount(selectedBudget.usedAmount) }}</div>
+                  <div class="stat-label">已使用</div>
+                </div>
+                <div class="stat-card warning">
+                  <div class="stat-value">{{ formatAmount(selectedBudget.occupiedAmount) }}</div>
+                  <div class="stat-label">已占用</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value">{{ formatAmount(selectedBudget.remainingAmount) }}</div>
+                  <div class="stat-label">剩余可用</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 报销管理 -->
+        <div v-else-if="currentMenu === 'reimbursement'">
+          <div class="page-header">
+            <div class="page-title">📝 报销管理</div>
+            <button class="btn primary" @click="openReimbursementModal">+ 新建报销</button>
+          </div>
+
+          <div class="tabs">
+            <div class="tab" :class="{ active: reimbursementTab === 'all' }" @click="reimbursementTab = 'all'; loadReimbursements()">
+              全部
+            </div>
+            <div class="tab" :class="{ active: reimbursementTab === 'draft' }" @click="reimbursementTab = 'draft'; loadReimbursements()">
+              草稿
+            </div>
+            <div class="tab" :class="{ active: reimbursementTab === 'submitted' }" @click="reimbursementTab = 'submitted'; loadReimbursements()">
+              待审批
+            </div>
+            <div class="tab" :class="{ active: reimbursementTab === 'approved' }" @click="reimbursementTab = 'approved'; loadReimbursements()">
+              已通过
+            </div>
+          </div>
+
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+          </div>
+
+          <div v-else class="card">
+            <div class="card-body">
+              <div v-if="reimbursements.length === 0" class="empty-state">
+                <div class="empty-icon">📝</div>
+                <div class="empty-text">暂无报销数据</div>
+              </div>
+              <table v-else class="table">
+                <thead>
+                  <tr>
+                    <th>标题</th>
+                    <th>金额</th>
+                    <th>分类</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in reimbursements" :key="item.id">
+                    <td>{{ item.title }}</td>
+                    <td>{{ formatAmount(item.amount) }}</td>
+                    <td>{{ item.category }}</td>
+                    <td><span class="badge" :class="item.status">{{ getReimbursementStatusText(item.status) }}</span></td>
+                    <td>{{ formatTime(item.createdAt) }}</td>
+                    <td>
+                      <a class="action-link" @click="submitReimbursement(item)" v-if="item.status === 'draft'">提交</a>
+                      <a class="action-link danger" @click="deleteReimbursement(item)" v-if="item.status === 'draft'">删除</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 账单管理 -->
+        <div v-else-if="currentMenu === 'bill'">
+          <div class="page-header">
+            <div class="page-title">📋 账单管理</div>
+            <button class="btn primary" @click="openBillModal">+ 新建账单</button>
+          </div>
+
+          <div class="tabs">
+            <div class="tab" :class="{ active: billTab === 'all' }" @click="billTab = 'all'; loadBills()">
+              全部
+            </div>
+            <div class="tab" :class="{ active: billTab === 'unmatched' }" @click="billTab = 'unmatched'; loadBills()">
+              待匹配
+            </div>
+            <div class="tab" :class="{ active: billTab === 'reconciled' }" @click="billTab = 'reconciled'; loadBills()">
+              已对账
+            </div>
+          </div>
+
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+          </div>
+
+          <div v-else class="card">
+            <div class="card-body">
+              <div v-if="bills.length === 0" class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">暂无账单数据</div>
+              </div>
+              <table v-else class="table">
+                <thead>
+                  <tr>
+                    <th>账单号</th>
+                    <th>供应商</th>
+                    <th>金额</th>
+                    <th>已匹配</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="bill in bills" :key="bill.id">
+                    <td>{{ bill.billNo }}</td>
+                    <td>{{ bill.supplier }}</td>
+                    <td>{{ formatAmount(bill.amount) }}</td>
+                    <td>{{ formatAmount(bill.matchedAmount) }}</td>
+                    <td><span class="badge" :class="bill.status">{{ getBillStatusText(bill.status) }}</span></td>
+                    <td>{{ formatTime(bill.createdAt) }}</td>
+                    <td>
+                      <a class="action-link" @click="reconcileBill(bill)" v-if="bill.status !== 'reconciled'">对账</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 费控规则 -->
+        <div v-else-if="currentMenu === 'fee-control'">
+          <div class="page-header">
+            <div class="page-title">⚖️ 费控规则</div>
+            <button class="btn primary" @click="openRuleModal">+ 新建规则</button>
+          </div>
+
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+          </div>
+
+          <div v-else class="card">
+            <div class="card-body">
+              <div v-if="feeControlRules.length === 0" class="empty-state">
+                <div class="empty-icon">⚖️</div>
+                <div class="empty-text">暂无费控规则</div>
+              </div>
+              <table v-else class="table">
+                <thead>
+                  <tr>
+                    <th>规则名称</th>
+                    <th>类型</th>
+                    <th>触发动作</th>
+                    <th>优先级</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="rule in feeControlRules" :key="rule.id">
+                    <td>{{ rule.name }}</td>
+                    <td>{{ rule.ruleType }}</td>
+                    <td>{{ getRuleActionText(rule.action) }}</td>
+                    <td>{{ rule.priority }}</td>
+                    <td><span class="badge" :class="rule.status">{{ rule.status === 'active' ? '已启用' : '已禁用' }}</span></td>
+                    <td>
+                      <a class="action-link" @click="viewRule(rule)">编辑</a>
+                      <a class="action-link" v-if="rule.status !== 'active'" @click="activateRule(rule)">启用</a>
+                      <a class="action-link" v-else @click="deactivateRule(rule)">禁用</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 预算弹窗 -->
+    <div v-if="showBudgetModal" class="modal-backdrop" @click.self="closeBudgetModal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">{{ editingBudget ? '编辑预算' : '新建预算' }}</div>
+          <button class="modal-close" @click="closeBudgetModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">预算层级</label>
+              <select class="form-select" v-model="budgetForm.level">
+                <option value="group">集团</option>
+                <option value="company">分公司</option>
+                <option value="project">项目</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">父级预算</label>
+              <select class="form-select" v-model="budgetForm.parentId">
+                <option value="">无（集团级）</option>
+                <option v-for="b in budgetFlatList" :key="b.id" :value="b.id">{{ b.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">预算名称</label>
+              <input type="text" class="form-input" v-model="budgetForm.name" placeholder="请输入预算名称">
+            </div>
+            <div class="form-group">
+              <label class="form-label">预算金额</label>
+              <input type="number" class="form-input" v-model.number="budgetForm.amount" placeholder="请输入金额">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group full">
+              <label class="form-label">描述</label>
+              <textarea class="form-textarea" v-model="budgetForm.description" placeholder="请输入描述"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="closeBudgetModal">取消</button>
+          <button class="btn primary" @click="saveBudget" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 报销弹窗 -->
+    <div v-if="showReimbursementModal" class="modal-backdrop" @click.self="closeReimbursementModal">
+      <div class="modal" style="max-width: 800px;">
+        <div class="modal-header">
+          <div class="modal-title">新建报销</div>
+          <button class="modal-close" @click="closeReimbursementModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">标题</label>
+              <input type="text" class="form-input" v-model="reimbursementForm.title" placeholder="请输入标题">
+            </div>
+            <div class="form-group">
+              <label class="form-label">关联预算</label>
+              <select class="form-select" v-model="reimbursementForm.budgetId">
+                <option value="">请选择</option>
+                <option v-for="b in budgetFlatList" :key="b.id" :value="b.id">{{ b.name }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">分类</label>
+              <select class="form-select" v-model="reimbursementForm.category">
+                <option value="差旅费">差旅费</option>
+                <option value="招待费">招待费</option>
+                <option value="办公用品">办公用品</option>
+                <option value="通讯费">通讯费</option>
+                <option value="交通费">交通费</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">金额</label>
+              <input type="number" class="form-input" v-model.number="reimbursementForm.amount" placeholder="请输入金额">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group full">
+              <label class="form-label">描述</label>
+              <textarea class="form-textarea" v-model="reimbursementForm.description" placeholder="请输入描述"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="closeReimbursementModal">取消</button>
+          <button class="btn primary" @click="saveReimbursement" :disabled="saving">
+            {{ saving ? '保存中...' : '保存为草稿' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 账单弹窗 -->
+    <div v-if="showBillModal" class="modal-backdrop" @click.self="closeBillModal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">新建账单</div>
+          <button class="modal-close" @click="closeBillModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">账单号</label>
+              <input type="text" class="form-input" v-model="billForm.billNo" placeholder="自动生成或手动输入">
+            </div>
+            <div class="form-group">
+              <label class="form-label">供应商</label>
+              <input type="text" class="form-input" v-model="billForm.supplier" placeholder="请输入供应商">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">金额</label>
+              <input type="number" class="form-input" v-model.number="billForm.amount" placeholder="请输入金额">
+            </div>
+            <div class="form-group">
+              <label class="form-label">分类</label>
+              <select class="form-select" v-model="billForm.category">
+                <option value="差旅费">差旅费</option>
+                <option value="招待费">招待费</option>
+                <option value="办公用品">办公用品</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="closeBillModal">取消</button>
+          <button class="btn primary" @click="saveBill" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 规则弹窗 -->
+    <div v-if="showRuleModal" class="modal-backdrop" @click.self="closeRuleModal">
+      <div class="modal" style="max-width: 800px;">
+        <div class="modal-header">
+          <div class="modal-title">{{ editingRule ? '编辑规则' : '新建规则' }}</div>
+          <button class="modal-close" @click="closeRuleModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">规则名称</label>
+              <input type="text" class="form-input" v-model="ruleForm.name" placeholder="请输入规则名称">
+            </div>
+            <div class="form-group">
+              <label class="form-label">触发动作</label>
+              <select class="form-select" v-model="ruleForm.action">
+                <option value="block">拦截（拒绝提交）</option>
+                <option value="warning">警告</option>
+                <option value="remind">提醒</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group full">
+              <label class="form-label">条件脚本（返回 true 时触发规则）</label>
+              <textarea class="form-textarea" v-model="ruleForm.conditionScript" rows="4"
+                        placeholder="// 示例：报销金额超过预算剩余
+// data.amount > budget.remainingAmount
+
+// 示例：单张发票金额超过10000元
+// data.amount > 10000"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" @click="closeRuleModal">取消</button>
+          <button class="btn primary" @click="saveRule" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, onMounted, nextTick } = Vue;
+
+    const API_BASE = '/api/finance';
+    
+    async function apiRequest(url, options = {}) {
+      try {
+        const response = await fetch(API_BASE + url, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          ...options,
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
+        
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.message || `HTTP ${response.status}`);
+        }
+        
+        return response.json();
+      } catch (e) {
+        console.error('API请求失败:', e);
+        throw e;
+      }
+    }
+
+    createApp({
+      setup() {
+        const currentMenu = ref('dashboard');
+        const loading = ref(false);
+        const saving = ref(false);
+        
+        const toast = reactive({ show: false, message: '', type: 'success' });
+        
+        const reimbursementTab = ref('all');
+        const billTab = ref('all');
+        
+        const budgetTree = ref([]);
+        const budgetFlatList = ref([]);
+        const selectedBudget = ref(null);
+        const expandedNodes = reactive({});
+        
+        const reimbursements = ref([]);
+        const bills = ref([]);
+        const feeControlRules = ref([]);
+        
+        const budgetStats = ref(null);
+        const reimbursementStats = ref(null);
+        const billStats = ref(null);
+        
+        const budgetChartRef = ref(null);
+        
+        const showBudgetModal = ref(false);
+        const showReimbursementModal = ref(false);
+        const showBillModal = ref(false);
+        const showRuleModal = ref(false);
+        
+        const editingBudget = ref(null);
+        const editingRule = ref(null);
+        
+        const budgetForm = reactive({
+          level: 'project',
+          parentId: '',
+          name: '',
+          amount: 0,
+          description: '',
+        });
+        
+        const reimbursementForm = reactive({
+          title: '',
+          budgetId: '',
+          category: '差旅费',
+          amount: 0,
+          description: '',
+        });
+        
+        const billForm = reactive({
+          billNo: '',
+          supplier: '',
+          amount: 0,
+          category: 'other',
+        });
+        
+        const ruleForm = reactive({
+          name: '',
+          action: 'warning',
+          priority: 0,
+          conditionScript: '',
+        });
+
+        function showToast(msg, type = 'success') {
+          toast.message = msg;
+          toast.type = type;
+          toast.show = true;
+          setTimeout(() => { toast.show = false; }, 3000);
+        }
+
+        function goBack() {
+          window.history.back();
+        }
+
+        function formatAmount(amount) {
+          if (amount === null || amount === undefined) return '¥0.00';
+          return '¥' + Number(amount).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatTime(timestamp) {
+          if (!timestamp) return '-';
+          const d = new Date(timestamp);
+          return d.toLocaleString('zh-CN');
+        }
+
+        function getBudgetIcon(level) {
+          const icons = { group: '🏢', company: '🏪', project: '📁' };
+          return icons[level] || '📁';
+        }
+
+        function getProgressClass(used, total) {
+          const percent = total > 0 ? (used / total) * 100 : 0;
+          if (percent >= 90) return 'danger';
+          if (percent >= 70) return 'warning';
+          return 'success';
+        }
+
+        function getProgressPercent(used, total) {
+          return total > 0 ? Math.min((used / total) * 100, 100) : 0;
+        }
+
+        function getReimbursementStatusText(status) {
+          const texts = {
+            draft: '草稿',
+            submitted: '待审批',
+            approved: '已通过',
+            rejected: '已驳回',
+            paid: '已支付',
+            cancelled: '已撤销'
+          };
+          return texts[status] || status;
+        }
+
+        function getBillStatusText(status) {
+          const texts = {
+            imported: '已导入',
+            pending: '待处理',
+            matched: '已匹配',
+            unmatched: '未匹配',
+            reconciled: '已对账',
+            disputed: '有争议'
+          };
+          return texts[status] || status;
+        }
+
+        function getRuleActionText(action) {
+          const texts = { block: '拦截', warning: '警告', remind: '提醒', pass: '通过' };
+          return texts[action] || action;
+        }
+
+        function toggleNode(node) {
+          expandedNodes[node.id] = !expandedNodes[node.id];
+        }
+
+        function selectBudget(node) {
+          selectedBudget.value = node;
+        }
+
+        async function loadBudgetTree() {
+          try {
+            const data = await apiRequest('/budgets/tree');
+            budgetTree.value = data;
+            budgetFlatList.value = flattenBudgetTree(data);
+          } catch (e) {
+            console.error('加载预算树失败:', e);
+            budgetTree.value = [];
+            budgetFlatList.value = [];
+          }
+        }
+
+        function flattenBudgetTree(nodes, result = []) {
+          nodes.forEach(node => {
+            result.push({ id: node.id, name: node.name, level: node.level, remainingAmount: node.remainingAmount });
+            if (node.children && node.children.length > 0) {
+              flattenBudgetTree(node.children, result);
+            }
+          });
+          return result;
+        }
+
+        async function loadReimbursements() {
+          loading.value = true;
+          try {
+            const status = reimbursementTab.value === 'all' ? null : reimbursementTab.value;
+            const data = await apiRequest(`/reimbursements${status ? '?status=' + status : ''}`);
+            reimbursements.value = data.data || [];
+          } catch (e) {
+            console.error('加载报销列表失败:', e);
+            reimbursements.value = [];
+          } finally {
+            loading.value = false;
+          }
+        }
+
+        async function loadBills() {
+          loading.value = true;
+          try {
+            const status = billTab.value === 'all' ? null : billTab.value;
+            const data = await apiRequest(`/bills${status ? '?status=' + status : ''}`);
+            bills.value = data.data || [];
+          } catch (e) {
+            console.error('加载账单列表失败:', e);
+            bills.value = [];
+          } finally {
+            loading.value = false;
+          }
+        }
+
+        async function loadFeeControlRules() {
+          try {
+            const data = await apiRequest('/fee-control');
+            feeControlRules.value = data.data || [];
+          } catch (e) {
+            console.error('加载费控规则失败:', e);
+            feeControlRules.value = [];
+          }
+        }
+
+        async function loadStatistics() {
+          try {
+            budgetStats.value = await apiRequest('/budgets/statistics');
+          } catch (e) {
+            console.error('加载预算统计失败:', e);
+          }
+          
+          try {
+            reimbursementStats.value = await apiRequest('/reimbursements/statistics');
+          } catch (e) {
+            console.error('加载报销统计失败:', e);
+          }
+          
+          try {
+            billStats.value = await apiRequest('/bills/statistics');
+          } catch (e) {
+            console.error('加载账单统计失败:', e);
+          }
+        }
+
+        function initCharts() {
+          nextTick(() => {
+            if (budgetChartRef.value) {
+              const chart = echarts.init(budgetChartRef.value);
+              const option = {
+                title: { text: '预算使用分布', left: 'center' },
+                tooltip: { trigger: 'item' },
+                legend: { orient: 'vertical', left: 'left' },
+                series: [{
+                  type: 'pie',
+                  radius: ['40%', '70%'],
+                  itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                  label: { show: true, formatter: '{b}: ¥{c}' },
+                  data: [
+                    { value: budgetStats.value?.summary?.totalUsed || 0, name: '已使用', itemStyle: { color: '#52c41a' } },
+                    { value: budgetStats.value?.summary?.totalOccupied || 0, name: '已占用', itemStyle: { color: '#faad14' } },
+                    { value: budgetStats.value?.summary?.totalRemaining || 0, name: '剩余', itemStyle: { color: '#667eea' } },
+                  ]
+                }]
+              };
+              chart.setOption(option);
+              window.addEventListener('resize', () => chart.resize());
+            }
+          });
+        }
+
+        function openBudgetModal() {
+          editingBudget.value = null;
+          budgetForm.level = 'project';
+          budgetForm.parentId = '';
+          budgetForm.name = '';
+          budgetForm.amount = 0;
+          budgetForm.description = '';
+          showBudgetModal.value = true;
+        }
+
+        function closeBudgetModal() {
+          showBudgetModal.value = false;
+          editingBudget.value = null;
+        }
+
+        function editBudget() {
+          if (!selectedBudget.value) return;
+          editingBudget.value = selectedBudget.value;
+          budgetForm.level = selectedBudget.value.level;
+          budgetForm.parentId = selectedBudget.value.parentId || '';
+          budgetForm.name = selectedBudget.value.name;
+          budgetForm.amount = selectedBudget.value.amount;
+          budgetForm.description = selectedBudget.value.description || '';
+          showBudgetModal.value = true;
+        }
+
+        async function saveBudget() {
+          if (!budgetForm.name) {
+            showToast('请输入预算名称', 'error');
+            return;
+          }
+          if (!budgetForm.amount || budgetForm.amount <= 0) {
+            showToast('请输入有效的预算金额', 'error');
+            return;
+          }
+
+          saving.value = true;
+          try {
+            const data = {
+              level: budgetForm.level,
+              parentId: budgetForm.parentId || null,
+              name: budgetForm.name,
+              amount: budgetForm.amount,
+              description: budgetForm.description,
+            };
+
+            if (editingBudget.value) {
+              await apiRequest(`/budgets/${editingBudget.value.id}`, {
+                method: 'PATCH',
+                body: data
+              });
+              showToast('预算已更新');
+            } else {
+              await apiRequest('/budgets', {
+                method: 'POST',
+                body: data
+              });
+              showToast('预算已创建');
+            }
+
+            closeBudgetModal();
+            await loadBudgetTree();
+            await loadStatistics();
+          } catch (e) {
+            showToast('保存失败: ' + e.message, 'error');
+          } finally {
+            saving.value = false;
+          }
+        }
+
+        async function deleteBudget() {
+          if (!selectedBudget.value) return;
+          if (!confirm('确定要删除此预算吗？')) return;
+
+          try {
+            await apiRequest(`/budgets/${selectedBudget.value.id}`, {
+              method: 'DELETE'
+            });
+            showToast('预算已删除');
+            selectedBudget.value = null;
+            await loadBudgetTree();
+            await loadStatistics();
+          } catch (e) {
+            showToast('删除失败: ' + e.message, 'error');
+          }
+        }
+
+        function openReimbursementModal() {
+          reimbursementForm.title = '';
+          reimbursementForm.budgetId = '';
+          reimbursementForm.category = '差旅费';
+          reimbursementForm.amount = 0;
+          reimbursementForm.description = '';
+          showReimbursementModal.value = true;
+        }
+
+        function closeReimbursementModal() {
+          showReimbursementModal.value = false;
+        }
+
+        async function saveReimbursement() {
+          if (!reimbursementForm.title) {
+            showToast('请输入标题', 'error');
+            return;
+          }
+          if (!reimbursementForm.budgetId) {
+            showToast('请选择关联预算', 'error');
+            return;
+          }
+
+          saving.value = true;
+          try {
+            const data = {
+              title: reimbursementForm.title,
+              budgetId: reimbursementForm.budgetId,
+              category: reimbursementForm.category,
+              amount: reimbursementForm.amount,
+              description: reimbursementForm.description,
+            };
+
+            await apiRequest('/reimbursements', {
+              method: 'POST',
+              body: data
+            });
+
+            showToast('报销单已保存为草稿');
+            closeReimbursementModal();
+            await loadReimbursements();
+            await loadStatistics();
+          } catch (e) {
+            showToast('保存失败: ' + e.message, 'error');
+          } finally {
+            saving.value = false;
+          }
+        }
+
+        async function submitReimbursement(item) {
+          if (!confirm('确定要提交此报销单吗？')) return;
+          
+          try {
+            await apiRequest(`/reimbursements/${item.id}/submit`, {
+              method: 'POST'
+            });
+            showToast('报销单已提交');
+            await loadReimbursements();
+          } catch (e) {
+            showToast('提交失败: ' + e.message, 'error');
+          }
+        }
+
+        async function deleteReimbursement(item) {
+          if (!confirm('确定要删除此报销单吗？')) return;
+          
+          try {
+            await apiRequest(`/reimbursements/${item.id}`, {
+              method: 'DELETE'
+            });
+            showToast('报销单已删除');
+            await loadReimbursements();
+            await loadStatistics();
+          } catch (e) {
+            showToast('删除失败: ' + e.message, 'error');
+          }
+        }
+
+        function openBillModal() {
+          billForm.billNo = `BIL-${Date.now()}`;
+          billForm.supplier = '';
+          billForm.amount = 0;
+          billForm.category = 'other';
+          showBillModal.value = true;
+        }
+
+        function closeBillModal() {
+          showBillModal.value = false;
+        }
+
+        async function saveBill() {
+          if (!billForm.supplier) {
+            showToast('请输入供应商', 'error');
+            return;
+          }
+          if (!billForm.amount || billForm.amount <= 0) {
+            showToast('请输入有效金额', 'error');
+            return;
+          }
+
+          saving.value = true;
+          try {
+            const data = {
+              billNo: billForm.billNo,
+              supplier: billForm.supplier,
+              amount: billForm.amount,
+              category: billForm.category,
+            };
+
+            await apiRequest('/bills', {
+              method: 'POST',
+              body: data
+            });
+
+            showToast('账单已创建');
+            closeBillModal();
+            await loadBills();
+            await loadStatistics();
+          } catch (e) {
+            showToast('保存失败: ' + e.message, 'error');
+          } finally {
+            saving.value = false;
+          }
+        }
+
+        async function reconcileBill(bill) {
+          if (!confirm('确定要对此账单进行对账吗？')) return;
+          
+          try {
+            await apiRequest(`/bills/${bill.id}/reconcile`, {
+              method: 'POST'
+            });
+            showToast('对账完成');
+            await loadBills();
+          } catch (e) {
+            showToast('对账失败: ' + e.message, 'error');
+          }
+        }
+
+        function openRuleModal() {
+          editingRule.value = null;
+          ruleForm.name = '';
+          ruleForm.action = 'warning';
+          ruleForm.conditionScript = '';
+          showRuleModal.value = true;
+        }
+
+        function closeRuleModal() {
+          showRuleModal.value = false;
+          editingRule.value = null;
+        }
+
+        function viewRule(rule) {
+          editingRule.value = rule;
+          ruleForm.name = rule.name;
+          ruleForm.action = rule.action;
+          ruleForm.conditionScript = rule.conditionScript || '';
+          showRuleModal.value = true;
+        }
+
+        async function saveRule() {
+          if (!ruleForm.name) {
+            showToast('请输入规则名称', 'error');
+            return;
+          }
+
+          saving.value = true;
+          try {
+            const data = {
+              name: ruleForm.name,
+              action: ruleForm.action,
+              conditionScript: ruleForm.conditionScript,
+              priority: 0,
+              applyToAll: true,
+            };
+
+            if (editingRule.value) {
+              await apiRequest(`/fee-control/${editingRule.value.id}`, {
+                method: 'PATCH',
+                body: data
+              });
+              showToast('规则已更新');
+            } else {
+              await apiRequest('/fee-control', {
+                method: 'POST',
+                body: data
+              });
+              showToast('规则已创建');
+            }
+
+            closeRuleModal();
+            await loadFeeControlRules();
+          } catch (e) {
+            showToast('保存失败: ' + e.message, 'error');
+          } finally {
+            saving.value = false;
+          }
+        }
+
+        async function activateRule(rule) {
+          try {
+            await apiRequest(`/fee-control/${rule.id}/activate`, {
+              method: 'POST'
+            });
+            showToast('规则已启用');
+            await loadFeeControlRules();
+          } catch (e) {
+            showToast('操作失败: ' + e.message, 'error');
+          }
+        }
+
+        async function deactivateRule(rule) {
+          try {
+            await apiRequest(`/fee-control/${rule.id}/deactivate`, {
+              method: 'POST'
+            });
+            showToast('规则已禁用');
+            await loadFeeControlRules();
+          } catch (e) {
+            showToast('操作失败: ' + e.message, 'error');
+          }
+        }
+
+        async function generateMockData() {
+          if (!confirm('确定要生成测试数据吗？')) return;
+          
+          try {
+            loading.value = true;
+            await apiRequest('/budgets/mock/generate', {
+              method: 'POST',
+              body: { count: 20 }
+            });
+            await apiRequest('/reimbursements/mock/generate', {
+              method: 'POST',
+              body: { count: 15 }
+            });
+            await apiRequest('/bills/mock/generate', {
+              method: 'POST',
+              body: { count: 20 }
+            });
+            await apiRequest('/fee-control/mock/generate', {
+              method: 'POST',
+              body: { count: 5 }
+            });
+            showToast('测试数据已生成');
+            await loadAll();
+          } catch (e) {
+            showToast('生成失败: ' + e.message, 'error');
+          } finally {
+            loading.value = false;
+          }
+        }
+
+        async function clearMockData() {
+          if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+          
+          try {
+            loading.value = true;
+            await apiRequest('/budgets/mock/clear', { method: 'DELETE' });
+            await apiRequest('/reimbursements/mock/clear', { method: 'DELETE' });
+            await apiRequest('/bills/mock/clear', { method: 'DELETE' });
+            await apiRequest('/fee-control/mock/clear', { method: 'DELETE' });
+            showToast('数据已清空');
+            await loadAll();
+          } catch (e) {
+            showToast('清空失败: ' + e.message, 'error');
+          } finally {
+            loading.value = false;
+          }
+        }
+
+        async function loadAll() {
+          await loadBudgetTree();
+          await loadReimbursements();
+          await loadBills();
+          await loadFeeControlRules();
+          await loadStatistics();
+          initCharts();
+        }
+
+        onMounted(async () => {
+          await loadAll();
+        });
+
+        watch(currentMenu, async (newMenu) => {
+          if (newMenu === 'dashboard') {
+            await loadStatistics();
+            initCharts();
+          } else if (newMenu === 'budget') {
+            await loadBudgetTree();
+          } else if (newMenu === 'reimbursement') {
+            await loadReimbursements();
+          } else if (newMenu === 'bill') {
+            await loadBills();
+          } else if (newMenu === 'fee-control') {
+            await loadFeeControlRules();
+          }
+        });
+
+        return {
+          currentMenu, loading, saving,
+          toast,
+          reimbursementTab, billTab,
+          budgetTree, budgetFlatList, selectedBudget, expandedNodes,
+          reimbursements, bills, feeControlRules,
+          budgetStats, reimbursementStats, billStats,
+          budgetChartRef,
+          showBudgetModal, showReimbursementModal, showBillModal, showRuleModal,
+          editingBudget, editingRule,
+          budgetForm, reimbursementForm, billForm, ruleForm,
+          
+          goBack,
+          formatAmount, formatTime, getBudgetIcon, getProgressClass, getProgressPercent,
+          getReimbursementStatusText, getBillStatusText, getRuleActionText,
+          
+          toggleNode, selectBudget,
+          openBudgetModal, closeBudgetModal, editBudget, saveBudget, deleteBudget,
+          openReimbursementModal, closeReimbursementModal, saveReimbursement, submitReimbursement, deleteReimbursement,
+          openBillModal, closeBillModal, saveBill, reconcileBill,
+          openRuleModal, closeRuleModal, viewRule, saveRule, activateRule, deactivateRule,
+          
+          generateMockData, clearMockData,
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
