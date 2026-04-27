@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仓配调度中心</title>
+  <link rel="stylesheet" href="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #667eea; --success: #52c41a; --warning: #faad14; --danger: #ff4d4f; --info: #1890ff;
+      --bg: #f5f7fa; --card-bg: #ffffff; --text: #333333; --text-secondary: #666666;
+      --text-light: #999999; --border: #e5e7eb;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); min-height: 100vh; }
+    .header { height: 64px; background: var(--card-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+    .header-title { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .header-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; }
+    .btn { padding: 8px 16px; border: 1px solid var(--border); background: var(--card-bg); border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn.primary { background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%); border-color: transparent; color: white; }
+    .btn.success { background: var(--success); color: white; border-color: transparent; }
+    .btn.danger { background: var(--danger); color: white; border-color: transparent; }
+    .container { display: flex; margin-top: 64px; min-height: calc(100vh - 64px); }
+    .sidebar { width: 220px; background: var(--card-bg); border-right: 1px solid var(--border); padding: 16px 0; }
+    .menu-item { padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border-left: 3px solid transparent; }
+    .menu-item:hover { background: var(--bg); }
+    .menu-item.active { background: rgba(102, 126, 234, 0.1); border-left-color: var(--primary); color: var(--primary); }
+    .content { flex: 1; padding: 24px; overflow-y: auto; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 600; }
+    .card { background: var(--card-bg); border-radius: 8px; margin-bottom: 20px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-body { padding: 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stat-card { background: var(--card-bg); padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary); }
+    .stat-value { font-size: 28px; font-weight: 600; color: var(--primary); }
+    .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+    .stat-card.success { border-left-color: var(--success); }
+    .stat-card.success .stat-value { color: var(--success); }
+    .stat-card.warning { border-left-color: var(--warning); }
+    .stat-card.warning .stat-value { color: var(--warning); }
+    .stat-card.danger { border-left-color: var(--danger); }
+    .stat-card.danger .stat-value { color: var(--danger); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .badge.active { background: #e6f7ff; color: #1890ff; }
+    .badge.inactive { background: #f5f5f5; color: #999; }
+    .badge.pending { background: #fffbe6; color: #faad14; }
+    .badge.allocated { background: #e6f7ff; color: #1890ff; }
+    .badge.shipped { background: #f6ffed; color: #52c41a; }
+    .badge.cancelled { background: #f5f5f5; color: #999; }
+    .toast { position: fixed; top: 80px; right: 24px; z-index: 1000; padding: 12px 20px; border-radius: 6px; font-size: 14px; animation: slideIn 0.3s ease; }
+    .toast.success { background: #f6ffed; border: 1px solid #b7eb8f; color: #52c41a; }
+    .toast.error { background: #fff2f0; border: 1px solid #ffccc7; color: #ff4d4f; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    .loading { text-align: center; padding: 40px; color: var(--text-light); }
+    .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .table-container { overflow-x: auto; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .filter-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-item { display: flex; align-items: center; gap: 8px; }
+    .filter-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+    .form-input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; }
+    .form-input:focus { outline: none; border-color: var(--primary); }
+    .chart-container { height: 300px; }
+    .data-factory-section { background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); padding: 24px; border-radius: 8px; margin-bottom: 20px; }
+    .data-factory-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+    .data-factory-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--bg); }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { font-weight: 600; font-size: 13px; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="header">
+      <div class="header-title">
+        <div class="header-icon">📦</div>
+        仓配调度中心
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn" @click="checkDataStatus">
+          <span v-if="hasData === null">🔄 检查数据</span>
+          <span v-else-if="hasData">📊 已有数据</span>
+          <span v-else>🗑️ 暂无数据</span>
+        </button>
+        <button class="btn success" v-if="!hasData" @click="generateMockData">🧪 一键生成仿真数据</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="sidebar">
+        <div class="menu-item" :class="{ active: currentMenu === 'dashboard' }" @click="switchMenu('dashboard')">
+          <span>📊</span><span>数据看板</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'warehouses' }" @click="switchMenu('warehouses')">
+          <span>🏭</span><span>仓库管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'skus' }" @click="switchMenu('skus')">
+          <span>🏷️</span><span>SKU管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'inventory' }" @click="switchMenu('inventory')">
+          <span>📦</span><span>库存管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'orders' }" @click="switchMenu('orders')">
+          <span>📋</span><span>订单管理</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'topology' }" @click="switchMenu('topology')">
+          <span>🗺️</span><span>库存拓扑</span>
+        </div>
+        <div class="menu-item" :class="{ active: currentMenu === 'logs' }" @click="switchMenu('logs')">
+          <span>📝</span><span>操作日志</span>
+        </div>
+      </div>
+
+      <div class="content">
+        <div v-if="currentMenu === 'dashboard'">
+          <div class="page-header">
+            <div class="page-title">数据看板</div>
+            <button class="btn primary" @click="loadDashboard">🔄 刷新</button>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">{{ dashboardStats.activeWarehouses || 0 }}</div>
+              <div class="stat-label">活跃仓库</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-value">{{ dashboardStats.activeSkus || 0 }}</div>
+              <div class="stat-label">活跃SKU</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-value">{{ formatNumber(dashboardStats.totalInventory || 0) }}</div>
+              <div class="stat-label">总库存量</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-value">{{ dashboardStats.pendingOrders || 0 }}</div>
+              <div class="stat-label">待处理订单</div>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" style="color: #667eea">{{ formatNumber(dashboardStats.lockedInventory || 0) }}</div>
+              <div class="stat-label">锁定库存</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-value">{{ formatNumber(dashboardStats.availableInventory || 0) }}</div>
+              <div class="stat-label">可用库存</div>
+            </div>
+            <div class="stat-card warning">
+              <div class="stat-value">{{ formatNumber(dashboardStats.todayIn || 0) }}</div>
+              <div class="stat-label">今日入库</div>
+            </div>
+            <div class="stat-card danger">
+              <div class="stat-value">{{ formatNumber(dashboardStats.todayOut || 0) }}</div>
+              <div class="stat-label">今日出库</div>
+            </div>
+          </div>
+
+          <div class="card" v-if="dashboardStats.lowInventoryCount > 0">
+            <div class="card-header">
+              <div class="card-title" style="color: var(--danger)">⚠️ 库存预警</div>
+              <span class="badge danger">{{ dashboardStats.lowInventoryCount }} 个SKU库存不足</span>
+            </div>
+            <div class="card-body">
+              <p style="margin-bottom: 8px; color: var(--text-secondary);">当前有 <strong style="color: var(--danger)">{{ dashboardStats.lowInventoryCount }}</strong> 个SKU的库存低于安全线，请及时补货。</p>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card">
+              <div class="card-header"><div class="card-title">仓库库存分布</div></div>
+              <div class="card-body"><div class="chart-container" ref="warehouseChart"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">订单状态统计</div></div>
+              <div class="card-body"><div class="chart-container" ref="orderChart"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentMenu === 'warehouses'">
+          <div class="page-header">
+            <div class="page-title">仓库管理</div>
+            <button class="btn primary" @click="showWarehouseModal = true">+ 新建仓库</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <select v-model="warehouseFilter.status" class="form-input" style="width: 120px;">
+                <option value="">全部</option>
+                <option value="active">启用</option>
+                <option value="inactive">停用</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">搜索</span>
+              <input type="text" v-model="warehouseFilter.keyword" class="form-input" placeholder="搜索名称/编码" style="width: 200px;">
+            </div>
+            <button class="btn" @click="loadWarehouses">🔍 查询</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="empty-state" v-if="warehouses.length === 0">
+                <div class="empty-icon">🏭</div>
+                <div class="empty-text">暂无仓库数据</div>
+                <button class="btn primary" style="margin-top: 16px;" @click="showWarehouseModal = true">创建第一个仓库</button>
+              </div>
+              <div class="table-container" v-else>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>名称</th>
+                      <th>编码</th>
+                      <th>地址</th>
+                      <th style="text-align: right;">SKU数</th>
+                      <th style="text-align: right;">库存量</th>
+                      <th style="text-align: center;">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="warehouse in warehouses" :key="warehouse.id">
+                      <td style="font-weight: 500;">{{ warehouse.name }}</td>
+                      <td><span style="font-family: monospace; color: var(--primary);">{{ warehouse.code }}</span></td>
+                      <td style="font-size: 13px; color: var(--text-secondary);">{{ warehouse.province }} {{ warehouse.city }}</td>
+                      <td style="text-align: right;">{{ warehouse.inventoryStats?.totalSku || 0 }}</td>
+                      <td style="text-align: right;">{{ formatNumber(warehouse.inventoryStats?.totalQuantity || 0) }}</td>
+                      <td style="text-align: center;">
+                        <span :class="['badge', warehouse.status === 'active' ? 'active' : 'inactive']">
+                          {{ warehouse.status === 'active' ? '启用' : '停用' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentMenu === 'skus'">
+          <div class="page-header">
+            <div class="page-title">SKU管理</div>
+            <button class="btn primary" @click="showSkuModal = true">+ 新建SKU</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <select v-model="skuFilter.status" class="form-input" style="width: 120px;">
+                <option value="">全部</option>
+                <option value="active">启用</option>
+                <option value="inactive">停用</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">搜索</span>
+              <input type="text" v-model="skuFilter.keyword" class="form-input" placeholder="搜索编码/名称" style="width: 200px;">
+            </div>
+            <button class="btn" @click="loadSkus">🔍 查询</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="empty-state" v-if="skus.length === 0">
+                <div class="empty-icon">🏷️</div>
+                <div class="empty-text">暂无SKU数据</div>
+                <button class="btn primary" style="margin-top: 16px;" @click="showSkuModal = true">创建第一个SKU</button>
+              </div>
+              <div class="table-container" v-else>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SKU编码</th>
+                      <th>名称</th>
+                      <th>规格</th>
+                      <th style="text-align: center;">单位</th>
+                      <th style="text-align: right;">总库存</th>
+                      <th style="text-align: right;">锁定</th>
+                      <th style="text-align: center;">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="sku in skus" :key="sku.id">
+                      <td><span style="font-family: monospace; color: var(--primary);">{{ sku.skuCode }}</span></td>
+                      <td style="font-weight: 500;">{{ sku.name }}</td>
+                      <td style="font-size: 13px; color: var(--text-secondary);">{{ sku.specification }}</td>
+                      <td style="text-align: center;">{{ sku.unit }}</td>
+                      <td style="text-align: right;">{{ formatNumber(sku.inventory?.totalQuantity || 0) }}</td>
+                      <td style="text-align: right; color: var(--warning);">{{ formatNumber(sku.inventory?.totalLocked || 0) }}</td>
+                      <td style="text-align: center;">
+                        <span :class="['badge', sku.status === 'active' ? 'active' : 'inactive']">
+                          {{ sku.status === 'active' ? '启用' : '停用' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentMenu === 'inventory'">
+          <div class="page-header">
+            <div class="page-title">库存管理</div>
+            <button class="btn primary" @click="showAddInventoryModal = true">+ 入库</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">仓库</span>
+              <select v-model="inventoryFilter.warehouseId" class="form-input" style="width: 150px;">
+                <option value="">全部仓库</option>
+                <option v-for="wh in warehouseOptions" :key="wh.id" :value="wh.id">{{ wh.name }}</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">搜索</span>
+              <input type="text" v-model="inventoryFilter.keyword" class="form-input" placeholder="搜索SKU" style="width: 200px;">
+            </div>
+            <button class="btn" @click="loadInventory">🔍 查询</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="empty-state" v-if="inventoryList.length === 0">
+                <div class="empty-icon">📦</div>
+                <div class="empty-text">暂无库存数据</div>
+                <button class="btn primary" style="margin-top: 16px;" @click="showAddInventoryModal = true">入库第一个商品</button>
+              </div>
+              <div class="table-container" v-else>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>仓库</th>
+                      <th>SKU编码</th>
+                      <th>名称</th>
+                      <th style="text-align: right;">总库存</th>
+                      <th style="text-align: right;">可用</th>
+                      <th style="text-align: right;">锁定</th>
+                      <th style="text-align: center;">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="inv in inventoryList" :key="inv.id">
+                      <td>{{ inv.warehouseName || 'N/A' }}</td>
+                      <td><span style="font-family: monospace; color: var(--primary);">{{ inv.skuCode }}</span></td>
+                      <td style="font-weight: 500;">{{ inv.skuName }}</td>
+                      <td style="text-align: right;">{{ formatNumber(inv.quantity) }}</td>
+                      <td style="text-align: right; color: var(--success);">{{ formatNumber(inv.availableQuantity) }}</td>
+                      <td style="text-align: right; color: var(--warning);">{{ formatNumber(inv.lockedQuantity) }}</td>
+                      <td style="text-align: center;">
+                        <span v-if="inv.quantity <= 0" class="badge danger">零库存</span>
+                        <span v-else class="badge active">正常</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentMenu === 'orders'">
+          <div class="page-header">
+            <div class="page-title">订单管理</div>
+            <button class="btn primary" @click="showOrderModal = true">+ 新建订单</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">状态</span>
+              <select v-model="orderFilter.status" class="form-input" style="width: 120px;">
+                <option value="">全部</option>
+                <option value="pending">待分配</option>
+                <option value="allocated">已分配</option>
+                <option value="shipped">已发货</option>
+                <option value="cancelled">已取消</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">类型</span>
+              <select v-model="orderFilter.type" class="form-input" style="width: 120px;">
+                <option value="">全部</option>
+                <option value="outbound">出库单</option>
+                <option value="transfer">调拨单</option>
+              </select>
+            </div>
+            <button class="btn" @click="loadOrders">🔍 查询</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="empty-state" v-if="orders.length === 0">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">暂无订单数据</div>
+                <button class="btn primary" style="margin-top: 16px;" @click="showOrderModal = true">创建第一个订单</button>
+              </div>
+              <div class="table-container" v-else>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>订单号</th>
+                      <th>类型</th>
+                      <th>目的地</th>
+                      <th style="text-align: right;">数量</th>
+                      <th style="text-align: center;">状态</th>
+                      <th style="text-align: center;">创建时间</th>
+                      <th style="text-align: center;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="order in orders" :key="order.id">
+                      <td><span style="font-family: monospace; color: var(--primary);">{{ order.orderNo }}</span></td>
+                      <td>{{ order.type === 'outbound' ? '出库单' : '调拨单' }}</td>
+                      <td style="font-size: 13px;">{{ order.targetProvince }} {{ order.targetCity }}</td>
+                      <td style="text-align: right;">{{ formatNumber(order.totalQuantity) }}</td>
+                      <td style="text-align: center;">
+                        <span :class="['badge', order.status]">
+                          {{ order.status === 'pending' ? '待分配' : order.status === 'allocated' ? '已分配' : order.status === 'shipped' ? '已发货' : '已取消' }}
+                        </span>
+                      </td>
+                      <td style="text-align: center; font-size: 12px; color: var(--text-secondary);">{{ formatDate(order.createdAt) }}</td>
+                      <td style="text-align: center;">
+                        <button v-if="order.status === 'pending'" class="btn success" style="padding: 4px 12px; font-size: 12px;" @click="allocateOrder(order)">分配</button>
+                        <button v-if="order.status === 'allocated'" class="btn primary" style="padding: 4px 12px; font-size: 12px;" @click="shipOrder(order)">发货</button>
+                        <button v-if="order.status === 'pending' || order.status === 'allocated'" class="btn danger" style="padding: 4px 12px; font-size: 12px; margin-left: 4px;" @click="cancelOrder(order)">取消</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentMenu === 'topology'">
+          <div class="page-header">
+            <div class="page-title">库存拓扑图</div>
+            <button class="btn primary" @click="loadTopology">🔄 刷新</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">仓库库存分布</div></div>
+            <div class="card-body">
+              <div class="empty-state" v-if="warehouseTopology.length === 0">
+                <div class="empty-icon">🗺️</div>
+                <div class="empty-text">暂无拓扑数据</div>
+              </div>
+              <div v-else class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>仓库</th>
+                      <th>城市</th>
+                      <th style="text-align: right;">SKU数</th>
+                      <th style="text-align: right;">总库存</th>
+                      <th style="text-align: right;">锁定</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="node in warehouseTopology" :key="node.id">
+                      <td style="font-weight: 500;">{{ node.name }} ({{ node.code }})</td>
+                      <td>{{ node.province }} {{ node.city }}</td>
+                      <td style="text-align: right;">{{ node.skuCount }}</td>
+                      <td style="text-align: right;">{{ formatNumber(node.totalQuantity) }}</td>
+                      <td style="text-align: right; color: var(--warning);">{{ formatNumber(node.lockedQuantity) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">SKU分布详情</div></div>
+            <div class="card-body">
+              <div class="empty-state" v-if="skuDistribution.length === 0">
+                <div class="empty-icon">🏷️</div>
+                <div class="empty-text">暂无SKU分布数据</div>
+              </div>
+              <div v-else class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th style="text-align: right;">总库存</th>
+                      <th style="text-align: right;">锁定</th>
+                      <th>分布仓库</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="dist in skuDistribution.slice(0, 10)" :key="dist.skuId">
+                      <td>
+                        <div style="font-weight: 500;">{{ dist.skuName }}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); font-family: monospace;">{{ dist.skuCode }}</div>
+                      </td>
+                      <td style="text-align: right;">{{ formatNumber(dist.totalQuantity) }}</td>
+                      <td style="text-align: right; color: var(--warning);">{{ formatNumber(dist.totalLocked) }}</td>
+                      <td>
+                        <div v-for="wh in dist.warehouses.slice(0, 3)" :key="wh.warehouseId" style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 13px;">
+                          <span>{{ wh.warehouseName }}</span>
+                          <span style="color: var(--primary);">{{ formatNumber(wh.quantity) }}</span>
+                        </div>
+                        <span v-if="dist.warehouses.length > 3" style="font-size: 12px; color: var(--text-light);">... 共 {{ dist.warehouses.length }} 个仓库</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentMenu === 'logs'">
+          <div class="page-header">
+            <div class="page-title">操作日志</div>
+            <button class="btn primary" @click="loadLogs">🔄 刷新</button>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">类型</span>
+              <select v-model="logFilter.type" class="form-input" style="width: 120px;">
+                <option value="">全部</option>
+                <option value="add">入库</option>
+                <option value="deduct">出库</option>
+                <option value="lock">锁定</option>
+                <option value="release">释放</option>
+              </select>
+            </div>
+            <button class="btn" @click="loadLogs">🔍 查询</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="empty-state" v-if="logs.length === 0">
+                <div class="empty-icon">📝</div>
+                <div class="empty-text">暂无操作日志</div>
+              </div>
+              <div v-else class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>类型</th>
+                      <th>仓库</th>
+                      <th>SKU</th>
+                      <th style="text-align: right;">变动数量</th>
+                      <th style="text-align: right;">库存变化</th>
+                      <th style="text-align: center;">时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="log in logs.slice(0, 20)" :key="log.id">
+                      <td>
+                        <span :class="['badge', log.type === 'add' || log.type === 'rollback' ? 'active' : log.type === 'deduct' ? 'cancelled' : 'pending']">
+                          {{ getLogTypeLabel(log.type) }}
+                        </span>
+                      </td>
+                      <td>{{ log.warehouseName || 'N/A' }}</td>
+                      <td>{{ log.skuName }} ({{ log.skuCode }})</td>
+                      <td style="text-align: right; color: {{ log.quantity >= 0 ? '#52c41a' : '#ff4d4f' }};">
+                        {{ log.quantity >= 0 ? '+' : '' }}{{ log.quantity }}
+                      </td>
+                      <td style="text-align: right;">{{ log.beforeQuantity }} → {{ log.afterQuantity }}</td>
+                      <td style="text-align: center; font-size: 12px; color: var(--text-secondary);">{{ formatDate(log.createdAt) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <t-dialog :visible="showWarehouseModal" header="新建仓库" @close="showWarehouseModal = false" width="500px">
+      <div style="display: grid; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">仓库名称 *</label>
+            <input type="text" v-model="warehouseForm.name" class="form-input" placeholder="请输入仓库名称" style="width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">仓库编码 *</label>
+            <input type="text" v-model="warehouseForm.code" class="form-input" placeholder="请输入仓库编码" style="width: 100%;">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">省份</label>
+            <input type="text" v-model="warehouseForm.province" class="form-input" placeholder="请输入省份" style="width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">城市</label>
+            <input type="text" v-model="warehouseForm.city" class="form-input" placeholder="请输入城市" style="width: 100%;">
+          </div>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">详细地址</label>
+          <input type="text" v-model="warehouseForm.address" class="form-input" placeholder="请输入详细地址" style="width: 100%;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">状态</label>
+          <select v-model="warehouseForm.status" class="form-input" style="width: 100%;">
+            <option value="active">启用</option>
+            <option value="inactive">停用</option>
+          </select>
+        </div>
+      </div>
+      <template #footer>
+        <t-button @click="showWarehouseModal = false">取消</t-button>
+        <t-button theme="primary" @click="saveWarehouse">保存</t-button>
+      </template>
+    </t-dialog>
+
+    <t-dialog :visible="showSkuModal" header="新建SKU" @close="showSkuModal = false" width="500px">
+      <div style="display: grid; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">SKU编码 *</label>
+            <input type="text" v-model="skuForm.skuCode" class="form-input" placeholder="请输入SKU编码" style="width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">商品名称 *</label>
+            <input type="text" v-model="skuForm.name" class="form-input" placeholder="请输入商品名称" style="width: 100%;">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">分类</label>
+            <select v-model="skuForm.category" class="form-input" style="width: 100%;">
+              <option value="default">默认</option>
+              <option value="electronics">电子产品</option>
+              <option value="clothing">服装鞋帽</option>
+              <option value="food">食品饮料</option>
+              <option value="home">家居用品</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">单位</label>
+            <input type="text" v-model="skuForm.unit" class="form-input" placeholder="如：个、台、件" style="width: 100%;">
+          </div>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">规格描述</label>
+          <input type="text" v-model="skuForm.specification" class="form-input" placeholder="请输入规格描述" style="width: 100%;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">安全库存</label>
+            <input type="number" v-model="skuForm.safetyStock" class="form-input" placeholder="低于此值触发预警" style="width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">状态</label>
+            <select v-model="skuForm.status" class="form-input" style="width: 100%;">
+              <option value="active">启用</option>
+              <option value="inactive">停用</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <t-button @click="showSkuModal = false">取消</t-button>
+        <t-button theme="primary" @click="saveSku">保存</t-button>
+      </template>
+    </t-dialog>
+
+    <t-dialog :visible="showAddInventoryModal" header="入库管理" @close="showAddInventoryModal = false" width="500px">
+      <div style="display: grid; gap: 16px;">
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">仓库 *</label>
+          <select v-model="addInventoryForm.warehouseId" class="form-input" style="width: 100%;">
+            <option value="">请选择仓库</option>
+            <option v-for="wh in warehouseOptions" :key="wh.id" :value="wh.id">{{ wh.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">SKU *</label>
+          <select v-model="addInventoryForm.skuId" class="form-input" style="width: 100%;">
+            <option value="">请选择SKU</option>
+            <option v-for="sku in skuOptions" :key="sku.id" :value="sku.id">{{ sku.skuCode }} - {{ sku.name }}</option>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">数量 *</label>
+            <input type="number" v-model="addInventoryForm.quantity" class="form-input" placeholder="请输入入库数量" style="width: 100%;" min="1">
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">成本单价</label>
+            <input type="number" v-model="addInventoryForm.costPrice" class="form-input" placeholder="请输入成本单价" style="width: 100%;" min="0" step="0.01">
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <t-button @click="showAddInventoryModal = false">取消</t-button>
+        <t-button theme="primary" @click="addInventory">确认入库</t-button>
+      </template>
+    </t-dialog>
+
+    <t-dialog :visible="showOrderModal" header="新建订单" @close="showOrderModal = false" width="600px">
+      <div style="display: grid; gap: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">订单类型 *</label>
+            <select v-model="orderForm.type" class="form-input" style="width: 100%;">
+              <option value="outbound">出库单</option>
+              <option value="transfer">调拨单</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">优先级</label>
+            <select v-model="orderForm.priority" class="form-input" style="width: 100%;">
+              <option value="normal">普通</option>
+              <option value="high">高</option>
+              <option value="urgent">紧急</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">目标省份</label>
+            <input type="text" v-model="orderForm.targetProvince" class="form-input" placeholder="请输入目标省份" style="width: 100%;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">目标城市</label>
+            <input type="text" v-model="orderForm.targetCity" class="form-input" placeholder="用于就近寻源" style="width: 100%;">
+          </div>
+        </div>
+        <div>
+          <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;">商品明细</label>
+          <div style="border: 1px solid var(--border); border-radius: 6px; padding: 12px;">
+            <div v-for="(item, idx) in orderForm.items" :key="idx" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+              <select v-model="item.skuId" class="form-input" style="flex: 2;">
+                <option value="">请选择SKU</option>
+                <option v-for="sku in skuOptions" :key="sku.id" :value="sku.id">{{ sku.skuCode }} - {{ sku.name }}</option>
+              </select>
+              <input type="number" v-model="item.quantity" class="form-input" style="width: 100px;" min="1" placeholder="数量">
+              <button class="btn danger" style="padding: 8px 12px;" @click="removeOrderItem(idx)">×</button>
+            </div>
+            <button class="btn" @click="addOrderItem">+ 添加商品</button>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <t-button @click="showOrderModal = false">取消</t-button>
+        <t-button theme="primary" @click="saveOrder">创建订单</t-button>
+      </template>
+    </t-dialog>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, onMounted, nextTick, watch } = Vue;
+    
+    createApp({
+      setup() {
+        const currentMenu = ref('dashboard');
+        const hasData = ref(null);
+        
+        const dashboardStats = reactive({
+          activeWarehouses: 0,
+          activeSkus: 0,
+          totalInventory: 0,
+          lockedInventory: 0,
+          availableInventory: 0,
+          pendingOrders: 0,
+          todayIn: 0,
+          todayOut: 0,
+          lowInventoryCount: 0
+        });
+
+        const warehouseFilter = reactive({ status: '', keyword: '' });
+        const warehouses = ref([]);
+        const warehouseOptions = ref([]);
+        const warehouseTopology = ref([]);
+
+        const skuFilter = reactive({ status: '', category: '', keyword: '' });
+        const skus = ref([]);
+        const skuOptions = ref([]);
+        const skuCategories = ref([]);
+        const skuDistribution = ref([]);
+
+        const inventoryFilter = reactive({ warehouseId: '', keyword: '' });
+        const inventoryList = ref([]);
+
+        const orderFilter = reactive({ status: '', type: '', keyword: '' });
+        const orders = ref([]);
+
+        const logFilter = reactive({ type: '', warehouseId: '' });
+        const logs = ref([]);
+
+        const showWarehouseModal = ref(false);
+        const showSkuModal = ref(false);
+        const showAddInventoryModal = ref(false);
+        const showOrderModal = ref(false);
+
+        const warehouseForm = reactive({
+          name: '', code: '', province: '', city: '', address: '', longitude: 0, latitude: 0, status: 'active'
+        });
+
+        const skuForm = reactive({
+          skuCode: '', name: '', category: 'default', unit: '个', specification: '',
+          minStock: 100, maxStock: 10000, safetyStock: 200, status: 'active'
+        });
+
+        const addInventoryForm = reactive({
+          warehouseId: '', skuId: '', quantity: 1, costPrice: 0
+        });
+
+        const orderForm = reactive({
+          type: 'outbound', priority: 'normal', targetProvince: '', targetCity: '',
+          targetAddress: '', items: [{ skuId: '', quantity: 1 }], remark: ''
+        });
+
+        const warehouseChart = ref(null);
+        const orderChart = ref(null);
+
+        const API_BASE = '/api/warehouse';
+        const token = localStorage.getItem('token');
+
+        async function apiRequest(url, options = {}) {
+          try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+            if (options.headers) {
+              Object.assign(headers, options.headers);
+            }
+            
+            const response = await fetch(API_BASE + url, {
+              headers,
+              credentials: 'include',
+              ...options,
+              body: options.body ? JSON.stringify(options.body) : undefined,
+            });
+            
+            if (response.status === 401) {
+              alert('登录已过期，请重新登录');
+              window.location.href = '/index.html';
+              return;
+            }
+            
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({}));
+              throw new Error(error.message || `HTTP ${response.status}`);
+            }
+            
+            return response.json();
+          } catch (e) {
+            console.error('API请求失败:', e);
+            throw e;
+          }
+        }
+
+        function showToast(message, type = 'success') {
+          const toast = document.createElement('div');
+          toast.className = `toast ${type}`;
+          toast.textContent = message;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        }
+
+        function formatNumber(num) {
+          if (num === null || num === undefined) return '0';
+          return Number(num).toLocaleString();
+        }
+
+        function formatDate(dateStr) {
+          if (!dateStr) return '-';
+          const date = new Date(dateStr);
+          return date.toLocaleString('zh-CN', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          });
+        }
+
+        function getLogTypeLabel(type) {
+          const labels = {
+            'add': '入库', 'deduct': '出库', 'lock': '锁定',
+            'release': '释放', 'rollback': '回滚'
+          };
+          return labels[type] || type;
+        }
+
+        async function checkDataStatus() {
+          try {
+            const result = await apiRequest('/data-factory/check');
+            hasData.value = result.hasData;
+          } catch (e) {
+            hasData.value = false;
+          }
+        }
+
+        async function generateMockData() {
+          try {
+            const result = await apiRequest('/data-factory/generate-all', {
+              method: 'POST',
+              body: { warehouseCount: 5, skuCount: 15, orderCount: 10 }
+            });
+            showToast('仿真数据生成成功！');
+            hasData.value = true;
+            loadAll();
+          } catch (e) {
+            showToast('生成失败: ' + e.message, 'error');
+          }
+        }
+
+        async function loadDashboard() {
+          try {
+            const data = await apiRequest('/inventory/dashboard');
+            Object.assign(dashboardStats, data);
+            
+            if (data.warehouseStats) {
+              const skuStats = await apiRequest('/skus/statistics').catch(() => ({ lowStockSkus: [] }));
+              dashboardStats.lowInventoryCount = skuStats.lowStockCount || 0;
+            }
+          } catch (e) {
+            console.error('加载看板数据失败:', e);
+          }
+        }
+
+        async function loadWarehouses() {
+          try {
+            const data = await apiRequest('/warehouses?page=1&pageSize=50');
+            warehouses.value = data.data || [];
+            warehouseOptions.value = warehouses.value.filter(w => w.status === 'active');
+          } catch (e) {
+            console.error('加载仓库失败:', e);
+          }
+        }
+
+        async function loadSkus() {
+          try {
+            const data = await apiRequest('/skus?page=1&pageSize=50');
+            skus.value = data.data || [];
+            skuOptions.value = skus.value.filter(s => s.status === 'active');
+            
+            const cats = await apiRequest('/skus/categories').catch(() => []);
+            skuCategories.value = cats;
+          } catch (e) {
+            console.error('加载SKU失败:', e);
+          }
+        }
+
+        async function loadInventory() {
+          try {
+            let url = '/inventory/warehouse/';
+            if (inventoryFilter.warehouseId) {
+              url += inventoryFilter.warehouseId;
+            } else {
+              if (warehouseOptions.value.length > 0) {
+                url += warehouseOptions.value[0].id;
+              } else {
+                inventoryList.value = [];
+                return;
+              }
+            }
+            url += '?page=1&pageSize=100';
+            if (inventoryFilter.keyword) {
+              url += `&keyword=${encodeURIComponent(inventoryFilter.keyword)}`;
+            }
+            
+            const data = await apiRequest(url);
+            inventoryList.value = data.data || [];
+          } catch (e) {
+            console.error('加载库存失败:', e);
+            inventoryList.value = [];
+          }
+        }
+
+        async function loadOrders() {
+          try {
+            let url = '/shipment-orders?page=1&pageSize=50';
+            if (orderFilter.status) url += `&status=${orderFilter.status}`;
+            if (orderFilter.type) url += `&type=${orderFilter.type}`;
+            
+            const data = await apiRequest(url);
+            orders.value = data.data || [];
+          } catch (e) {
+            console.error('加载订单失败:', e);
+          }
+        }
+
+        async function loadLogs() {
+          try {
+            let url = '/inventory/logs?page=1&pageSize=50';
+            if (logFilter.type) url += `&type=${logFilter.type}`;
+            
+            const data = await apiRequest(url);
+            logs.value = data.data || [];
+          } catch (e) {
+            console.error('加载日志失败:', e);
+          }
+        }
+
+        async function loadTopology() {
+          try {
+            const data = await apiRequest('/warehouses/topology');
+            warehouseTopology.value = data.nodes || [];
+            skuDistribution.value = data.skuDistribution || [];
+          } catch (e) {
+            console.error('加载拓扑失败:', e);
+          }
+        }
+
+        async function saveWarehouse() {
+          if (!warehouseForm.name || !warehouseForm.code) {
+            showToast('请填写必填项', 'error');
+            return;
+          }
+          try {
+            await apiRequest('/warehouses', {
+              method: 'POST',
+              body: warehouseForm
+            });
+            showToast('仓库创建成功！');
+            showWarehouseModal.value = false;
+            Object.assign(warehouseForm, { name: '', code: '', province: '', city: '', address: '', status: 'active' });
+            loadWarehouses();
+          } catch (e) {
+            showToast('创建失败: ' + e.message, 'error');
+          }
+        }
+
+        async function saveSku() {
+          if (!skuForm.skuCode || !skuForm.name) {
+            showToast('请填写必填项', 'error');
+            return;
+          }
+          try {
+            await apiRequest('/skus', {
+              method: 'POST',
+              body: skuForm
+            });
+            showToast('SKU创建成功！');
+            showSkuModal.value = false;
+            Object.assign(skuForm, { skuCode: '', name: '', category: 'default', unit: '个', specification: '', status: 'active' });
+            loadSkus();
+          } catch (e) {
+            showToast('创建失败: ' + e.message, 'error');
+          }
+        }
+
+        async function addInventory() {
+          if (!addInventoryForm.warehouseId || !addInventoryForm.skuId || !addInventoryForm.quantity) {
+            showToast('请填写必填项', 'error');
+            return;
+          }
+          try {
+            await apiRequest('/inventory/add', {
+              method: 'POST',
+              body: addInventoryForm
+            });
+            showToast('入库成功！');
+            showAddInventoryModal.value = false;
+            Object.assign(addInventoryForm, { warehouseId: '', skuId: '', quantity: 1, costPrice: 0 });
+            loadInventory();
+            loadLogs();
+          } catch (e) {
+            showToast('入库失败: ' + e.message, 'error');
+          }
+        }
+
+        async function saveOrder() {
+          if (!orderForm.targetCity) {
+            showToast('请填写目标城市', 'error');
+            return;
+          }
+          const validItems = orderForm.items.filter(i => i.skuId && i.quantity > 0);
+          if (validItems.length === 0) {
+            showToast('请添加至少一个商品', 'error');
+            return;
+          }
+          try {
+            await apiRequest('/shipment-orders', {
+              method: 'POST',
+              body: {
+                ...orderForm,
+                items: validItems
+              }
+            });
+            showToast('订单创建成功！');
+            showOrderModal.value = false;
+            Object.assign(orderForm, {
+              type: 'outbound', priority: 'normal', targetProvince: '', targetCity: '',
+              targetAddress: '', items: [{ skuId: '', quantity: 1 }], remark: ''
+            });
+            loadOrders();
+          } catch (e) {
+            showToast('创建失败: ' + e.message, 'error');
+          }
+        }
+
+        async function allocateOrder(order) {
+          try {
+            await apiRequest(`/shipment-orders/${order.id}/allocate`, { method: 'POST' });
+            showToast('分配成功！');
+            loadOrders();
+          } catch (e) {
+            showToast('分配失败: ' + e.message, 'error');
+          }
+        }
+
+        async function shipOrder(order) {
+          try {
+            await apiRequest(`/shipment-orders/${order.id}/ship`, { method: 'POST' });
+            showToast('发货成功！');
+            loadOrders();
+            loadLogs();
+          } catch (e) {
+            showToast('发货失败: ' + e.message, 'error');
+          }
+        }
+
+        async function cancelOrder(order) {
+          try {
+            await apiRequest(`/shipment-orders/${order.id}/cancel`, { method: 'POST' });
+            showToast('取消成功！');
+            loadOrders();
+          } catch (e) {
+            showToast('取消失败: ' + e.message, 'error');
+          }
+        }
+
+        function addOrderItem() {
+          orderForm.items.push({ skuId: '', quantity: 1 });
+        }
+
+        function removeOrderItem(idx) {
+          if (orderForm.items.length > 1) {
+            orderForm.items.splice(idx, 1);
+          }
+        }
+
+        function switchMenu(menu) {
+          currentMenu.value = menu;
+          nextTick(() => {
+            loadByMenu(menu);
+          });
+        }
+
+        function loadByMenu(menu) {
+          switch (menu) {
+            case 'dashboard':
+              loadDashboard();
+              break;
+            case 'warehouses':
+              loadWarehouses();
+              break;
+            case 'skus':
+              loadSkus();
+              break;
+            case 'inventory':
+              loadInventory();
+              break;
+            case 'orders':
+              loadOrders();
+              break;
+            case 'topology':
+              loadTopology();
+              break;
+            case 'logs':
+              loadLogs();
+              break;
+          }
+        }
+
+        function loadAll() {
+          loadDashboard();
+          loadWarehouses();
+          loadSkus();
+        }
+
+        onMounted(() => {
+          checkDataStatus();
+          loadAll();
+        });
+
+        watch(currentMenu, (newMenu) => {
+          loadByMenu(newMenu);
+        });
+
+        return {
+          currentMenu, hasData,
+          dashboardStats,
+          warehouseFilter, warehouses, warehouseOptions, warehouseTopology,
+          skuFilter, skus, skuOptions, skuCategories, skuDistribution,
+          inventoryFilter, inventoryList,
+          orderFilter, orders,
+          logFilter, logs,
+          showWarehouseModal, showSkuModal, showAddInventoryModal, showOrderModal,
+          warehouseForm, skuForm, addInventoryForm, orderForm,
+          warehouseChart, orderChart,
+          formatNumber, formatDate, getLogTypeLabel,
+          checkDataStatus, generateMockData,
+          loadDashboard, loadWarehouses, loadSkus, loadInventory, loadOrders, loadLogs, loadTopology,
+          saveWarehouse, saveSku, addInventory, saveOrder,
+          allocateOrder, shipOrder, cancelOrder,
+          addOrderItem, removeOrderItem,
+          switchMenu
+        };
+      }
+    }).use(TDesign).mount('#app');
+  </script>
+</body>
+</html>

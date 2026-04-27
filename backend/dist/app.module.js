@@ -38,6 +38,7 @@ const temporary_access_module_1 = require("./temporary-access/temporary-access.m
 const ticket_assign_module_1 = require("./ticket-assign/ticket-assign.module");
 const gateway_module_1 = require("./gateway/gateway.module");
 const finance_module_1 = require("./finance/finance.module");
+const warehouse_module_1 = require("./warehouse/warehouse.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -69,6 +70,7 @@ exports.AppModule = AppModule = __decorate([
             ticket_assign_module_1.TicketAssignModule,
             gateway_module_1.GatewayModule,
             finance_module_1.FinanceModule,
+            warehouse_module_1.WarehouseModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService, permissions_service_1.PermissionsService, roles_service_1.RolesService, users_service_1.UsersService],

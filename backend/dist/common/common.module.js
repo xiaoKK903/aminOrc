@@ -9,14 +9,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommonModule = void 0;
 const common_1 = require("@nestjs/common");
 const json_storage_service_1 = require("./json-storage.service");
+const sqlite_storage_service_1 = require("./sqlite-storage.service");
 let CommonModule = class CommonModule {
 };
 exports.CommonModule = CommonModule;
 exports.CommonModule = CommonModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
-        providers: [json_storage_service_1.JsonStorageService],
-        exports: [json_storage_service_1.JsonStorageService],
+        providers: [json_storage_service_1.JsonStorageService, sqlite_storage_service_1.SqliteStorageService],
+        exports: [json_storage_service_1.JsonStorageService, sqlite_storage_service_1.SqliteStorageService],
     })
 ], CommonModule);
 //# sourceMappingURL=common.module.js.map
