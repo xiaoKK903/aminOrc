@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>网关功能测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+    }
+    .btn.primary {
+      background: #667eea;
+      color: white;
+    }
+    .btn.primary:hover {
+      background: #5568d3;
+    }
+    .btn.secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+    .btn.secondary:hover {
+      background: #e0e0e0;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status-box {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .status-box.success {
+      background: #f6ffed;
+      border: 1px solid #b7eb8f;
+      color: #52c41a;
+    }
+    .status-box.error {
+      background: #fff2f0;
+      border: 1px solid #ffccc7;
+      color: #ff4d4f;
+    }
+    .status-box.info {
+      background: #e6f7ff;
+      border: 1px solid #91d5ff;
+      color: #1890ff;
+    }
+    .log-area {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 16px;
+      border-radius: 6px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    .form-group.full {
+      flex: 1 1 100%;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: 'Consolas', monospace;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .card-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #666;
+    }
+    .divider {
+      height: 1px;
+      background: #eee;
+      margin: 20px 0;
+    }
+    .api-list {
+      margin-top: 10px;
+    }
+    .api-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: #fafafa;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .api-item:hover {
+      background: #f0f0f0;
+    }
+    .api-method {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .api-method.GET { background: #e6f7ff; color: #1890ff; }
+    .api-method.POST { background: #f6ffed; color: #52c41a; }
+    .api-method.PUT { background: #fffbe6; color: #faad14; }
+    .api-method.DELETE { background: #fff2f0; color: #ff4d4f; }
+    .api-path {
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+    }
+    .api-status {
+      margin-left: auto;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .api-status.active { background: #f6ffed; color: #52c41a; }
+    .api-status.draft { background: #f5f5f5; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 零代码聚合网关 - 功能测试</h1>
+
+    <!-- 第一步：检查环境 -->
+    <div class="section">
+      <div class="section-title">📋 第一步：环境检查</div>
+      <div id="env-status">
+        <div class="status-box info">正在检查环境...</div>
+      </div>
+      <div class="log-area" id="env-log"></div>
+    </div>
+
+    <!-- 第二步：测试后端API连接 -->
+    <div class="section">
+      <div class="section-title">🔌 第二步：后端API连接测试</div>
+      <div id="api-status">
+        <div class="status-box info">点击按钮测试API连接</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">后端API地址</label>
+          <input type="text" class="form-input" id="api-base" value="/api/gateway" placeholder="/api/gateway">
+        </div>
+      </div>
+      <button class="btn primary" onclick="testApiConnection()">测试API连接</button>
+      <button class="btn secondary" onclick="testGetApis()">获取接口列表</button>
+      <button class="btn secondary" onclick="testGetStatistics()">获取统计数据</button>
+      <div class="log-area" id="api-log" style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- 第三步：创建测试接口 -->
+    <div class="section">
+      <div class="section-title">➕ 第三步：创建测试接口</div>
+      <div id="create-status">
+        <div class="status-box info">填写表单创建测试接口</div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">请求方法</label>
+          <select class="form-select" id="test-method">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">接口路径</label>
+          <input type="text" class="form-input" id="test-path" value="/api/test/hello" placeholder="/api/test/hello">
+        </div>
+        <div class="form-group">
+          <label class="form-label">接口名称</label>
+          <input type="text" class="form-input" id="test-name" value="测试接口" placeholder="测试接口">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group full">
+          <label class="form-label">聚合脚本（可选）</label>
+          <textarea class="form-textarea" id="test-script">// 返回简单的测试数据
+return {
+  message: 'Hello from Gateway!',
+  timestamp: Date.now(),
+  data: {
+    greeting: '你好，世界！'
+  }
+};</textarea>
+        </div>
+      </div>
+
+      <button class="btn primary" onclick="createTestApi()">创建接口</button>
+      <button class="btn secondary" onclick="clearForm()">清空表单</button>
+      <div class="log-area" id="create-log" style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- 第四步：接口列表 -->
+    <div class="section">
+      <div class="section-title">📋 第四步：接口列表</div>
+      <button class="btn secondary" onclick="refreshApiList()">刷新列表</button>
+      <div id="api-list" class="api-list" style="margin-top: 16px;">
+        <div style="color: #999; padding: 20px; text-align: center;">点击"刷新列表"加载接口</div>
+      </div>
+    </div>
+
+    <!-- 第五步：发布和测试接口 -->
+    <div class="section" id="test-section" style="display: none;">
+      <div class="section-title">🚀 第五步：发布并测试接口</div>
+      <div id="test-api-status">
+        <div class="status-box info">选择一个接口进行测试</div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">选中的接口ID</label>
+          <input type="text" class="form-input" id="selected-api-id" readonly placeholder="点击列表选择接口">
+        </div>
+      </div>
+
+      <button class="btn primary" onclick="publishSelectedApi()">发布接口</button>
+      <button class="btn secondary" onclick="executeSelectedApi()">执行测试</button>
+      <button class="btn secondary" onclick="callDynamicRoute()">调用动态路由</button>
+      <button class="btn btn-danger" onclick="deleteSelectedApi()">删除接口</button>
+      
+      <div class="log-area" id="execute-log" style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- 第六步：诊断原始 gateway.html -->
+    <div class="section">
+      <div class="section-title">🔍 第六步：诊断原始 gateway.html</div>
+      <div class="status-box info">
+        原始 gateway.html 使用 localStorage 存储数据，没有连接真实后端。
+        <br>点击下方按钮打开诊断页面和新版本页面。
+      </div>
+      <button class="btn secondary" onclick="window.open('gateway-test.html', '_blank')">打开诊断页面</button>
+      <button class="btn primary" onclick="window.open('gateway-v2.html', '_blank')">打开新版本 (连接后端)</button>
+      <button class="btn secondary" onclick="window.open('gateway.html', '_blank')">打开原始版本</button>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let apiBase = '/api/gateway';
+    let currentApis = [];
+    let selectedApiId = null;
+
+    // 日志函数
+    function log(elemId, message, type = 'info') {
+      const elem = document.getElementById(elemId);
+      const timestamp = new Date().toLocaleTimeString();
+      const prefix = {
+        info: 'ℹ️',
+        success: '✅',
+        error: '❌',
+        warn: '⚠️'
+      };
+      const colors = {
+        info: '#d4d4d4',
+        success: '#89d185',
+        error: '#f48771',
+        warn: '#dcdcaa'
+      };
+      const line = `[${timestamp}] ${prefix[type] || ''} ${message}\n`;
+      elem.textContent += line;
+      elem.scrollTop = elem.scrollHeight;
+      console.log(message);
+    }
+
+    function clearLog(elemId) {
+      document.getElementById(elemId).textContent = '';
+    }
+
+    function setStatus(elemId, message, type = 'info') {
+      const classes = {
+        info: 'status-box info',
+        success: 'status-box success',
+        error: 'status-box error'
+      };
+      document.getElementById(elemId).innerHTML = `<div class="${classes[type]}">${message}</div>`;
+    }
+
+    // API 请求函数
+    async function apiRequest(url, options = {}) {
+      const base = document.getElementById('api-base').value || '/api/gateway';
+      const fullUrl = base + url;
+      
+      try {
+        const response = await fetch(fullUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          ...options,
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
+        
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${text}`);
+        }
+        
+        return { success: true, data, status: response.status };
+      } catch (error) {
+        return { success: false, error: error.message, data: null };
+      }
+    }
+
+    // 环境检查
+    function checkEnvironment() {
+      clearLog('env-log');
+      log('env-log', '开始检查环境...', 'info');
+      
+      const checks = [
+        { name: 'Vue', check: () => typeof Vue !== 'undefined' },
+        { name: 'window.Vue', check: () => typeof window.Vue !== 'undefined' },
+        { name: 'fetch API', check: () => typeof fetch !== 'undefined' },
+        { name: 'localStorage', check: () => typeof localStorage !== 'undefined' },
+      ];
+      
+      let allPassed = true;
+      checks.forEach(check => {
+        const passed = check.check();
+        log('env-log', `${check.name}: ${passed ? '✅ 可用' : '❌ 不可用'}`, passed ? 'success' : 'error');
+        if (!passed) allPassed = false;
+      });
+      
+      // 检查页面中是否有 Vue 应用
+      const appElement = document.getElementById('app');
+      log('env-log', `页面是否有 #app 元素: ${appElement ? '✅ 有' : '❌ 没有'}`, appElement ? 'success' : 'error');
+      
+      setStatus('env-status', allPassed ? '环境检查通过！' : '环境检查发现问题！', allPassed ? 'success' : 'error');
+    }
+
+    // 测试 API 连接
+    async function testApiConnection() {
+      clearLog('api-log');
+      log('api-log', '测试 API 连接...', 'info');
+      
+      const result = await apiRequest('');
+      
+      if (result.success) {
+        log('api-log', `连接成功！`, 'success');
+        log('api-log', `响应数据: ${JSON.stringify(result.data, null, 2)}`, 'info');
+        setStatus('api-status', 'API 连接成功！', 'success');
+      } else {
+        log('api-log', `连接失败: ${result.error}`, 'error');
+        log('api-log', `可能的原因:`, 'warn');
+        log('api-log', `  1. 后端服务器未启动`, 'warn');
+        log('api-log', `  2. 后端端口不是 3005`, 'warn');
+        log('api-log', `  3. 网关模块未正确加载`, 'warn');
+        setStatus('api-status', `API 连接失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 获取接口列表
+    async function testGetApis() {
+      clearLog('api-log');
+      log('api-log', '获取接口列表...', 'info');
+      
+      const result = await apiRequest('');
+      
+      if (result.success) {
+        const apis = result.data.data || result.data;
+        log('api-log', `获取成功，共 ${Array.isArray(apis) ? apis.length : 0} 个接口`, 'success');
+        if (Array.isArray(apis)) {
+          apis.forEach((api, idx) => {
+            log('api-log', `  [${idx + 1}] ${api.method} ${api.path} - ${api.name} (${api.status})`, 'info');
+          });
+        }
+        currentApis = Array.isArray(apis) ? apis : [];
+      } else {
+        log('api-log', `获取失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 获取统计数据
+    async function testGetStatistics() {
+      clearLog('api-log');
+      log('api-log', '获取统计数据...', 'info');
+      
+      const result = await apiRequest('/statistics');
+      
+      if (result.success) {
+        log('api-log', `获取成功！`, 'success');
+        log('api-log', `统计数据: ${JSON.stringify(result.data, null, 2)}`, 'info');
+      } else {
+        log('api-log', `获取失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 创建测试接口
+    async function createTestApi() {
+      clearLog('create-log');
+      log('create-log', '创建测试接口...', 'info');
+      
+      const method = document.getElementById('test-method').value;
+      const path = document.getElementById('test-path').value;
+      const name = document.getElementById('test-name').value;
+      const script = document.getElementById('test-script').value;
+      
+      if (!path) {
+        log('create-log', '请输入接口路径', 'error');
+        setStatus('create-status', '请输入接口路径', 'error');
+        return;
+      }
+      
+      if (!name) {
+        log('create-log', '请输入接口名称', 'error');
+        setStatus('create-status', '请输入接口名称', 'error');
+        return;
+      }
+      
+      const apiData = {
+        method: method,
+        path: path,
+        name: name,
+        description: '通过测试页面创建的接口',
+        timeout: 30000,
+        cacheTtl: 0,
+        params: [],
+        aggregationScript: script,
+        flowNodes: [],
+        rateLimit: { enabled: false, maxQps: 100, strategy: 'reject' },
+        circuitBreaker: { errorThreshold: 50, recoveryTime: 30 },
+      };
+      
+      log('create-log', `请求数据: ${JSON.stringify(apiData, null, 2)}`, 'info');
+      
+      const result = await apiRequest('', {
+        method: 'POST',
+        body: apiData
+      });
+      
+      if (result.success) {
+        log('create-log', `创建成功！`, 'success');
+        log('create-log', `返回数据: ${JSON.stringify(result.data, null, 2)}`, 'info');
+        setStatus('create-status', `接口创建成功！方法: ${method}, 路径: ${path}`, 'success');
+        await refreshApiList();
+      } else {
+        log('create-log', `创建失败: ${result.error}`, 'error');
+        setStatus('create-status', `创建失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 清空表单
+    function clearForm() {
+      document.getElementById('test-method').value = 'GET';
+      document.getElementById('test-path').value = '/api/test/hello';
+      document.getElementById('test-name').value = '测试接口';
+      document.getElementById('test-script').value = `// 返回简单的测试数据
+return {
+  message: 'Hello from Gateway!',
+  timestamp: Date.now(),
+  data: {
+    greeting: '你好，世界！'
+  }
+};`;
+      clearLog('create-log');
+      setStatus('create-status', '表单已清空', 'info');
+    }
+
+    // 刷新接口列表
+    async function refreshApiList() {
+      const result = await apiRequest('');
+      const listElem = document.getElementById('api-list');
+      
+      if (!result.success) {
+        listElem.innerHTML = `<div style="color: #ff4d4f; padding: 20px; text-align: center;">
+          加载失败: ${result.error}
+          <br><br>
+          <small>请确保后端服务器已启动并运行在正确的端口</small>
+        </div>`;
+        return;
+      }
+      
+      const apis = result.data.data || result.data;
+      currentApis = Array.isArray(apis) ? apis : [];
+      
+      if (currentApis.length === 0) {
+        listElem.innerHTML = `<div style="color: #999; padding: 20px; text-align: center;">
+          暂无接口，请先创建
+        </div>`;
+        return;
+      }
+      
+      let html = '';
+      currentApis.forEach(api => {
+        html += `<div class="api-item" onclick="selectApi('${api.id}')">
+          <span class="api-method ${api.method}">${api.method}</span>
+          <span class="api-path">${api.path}</span>
+          <span class="api-status ${api.status}">${api.status === 'active' ? '已发布' : '草稿'}</span>
+        </div>`;
+      });
+      
+      listElem.innerHTML = html;
+    }
+
+    // 选择接口
+    function selectApi(id) {
+      selectedApiId = id;
+      document.getElementById('selected-api-id').value = id;
+      document.getElementById('test-section').style.display = 'block';
+      
+      const api = currentApis.find(a => a.id === id);
+      if (api) {
+        setStatus('test-api-status', `已选择: ${api.method} ${api.path} (${api.name})`, 'info');
+      }
+    }
+
+    // 发布选中的接口
+    async function publishSelectedApi() {
+      if (!selectedApiId) {
+        alert('请先选择一个接口');
+        return;
+      }
+      
+      clearLog('execute-log');
+      log('execute-log', `发布接口: ${selectedApiId}`, 'info');
+      
+      const result = await apiRequest(`/${selectedApiId}/publish`, {
+        method: 'POST'
+      });
+      
+      if (result.success) {
+        log('execute-log', `发布成功！`, 'success');
+        log('execute-log', `返回数据: ${JSON.stringify(result.data, null, 2)}`, 'info');
+        setStatus('test-api-status', '接口已发布！动态路由已生效', 'success');
+        await refreshApiList();
+      } else {
+        log('execute-log', `发布失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 执行选中的接口
+    async function executeSelectedApi() {
+      if (!selectedApiId) {
+        alert('请先选择一个接口');
+        return;
+      }
+      
+      clearLog('execute-log');
+      log('execute-log', `执行接口: ${selectedApiId}`, 'info');
+      
+      const testData = {
+        testParam: 'testValue',
+        timestamp: Date.now()
+      };
+      
+      log('execute-log', `测试参数: ${JSON.stringify(testData, null, 2)}`, 'info');
+      
+      const result = await apiRequest(`/${selectedApiId}/execute`, {
+        method: 'POST',
+        body: testData
+      });
+      
+      if (result.success) {
+        log('execute-log', `执行成功！`, 'success');
+        log('execute-log', `返回数据: ${JSON.stringify(result.data, null, 2)}`, 'info');
+        setStatus('test-api-status', '接口执行成功！', 'success');
+      } else {
+        log('execute-log', `执行失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 调用动态路由
+    async function callDynamicRoute() {
+      if (!selectedApiId) {
+        alert('请先选择一个接口');
+        return;
+      }
+      
+      const api = currentApis.find(a => a.id === selectedApiId);
+      if (!api) {
+        alert('未找到接口');
+        return;
+      }
+      
+      if (api.status !== 'active') {
+        alert('接口未发布，请先发布接口');
+        return;
+      }
+      
+      clearLog('execute-log');
+      log('execute-log', `调用动态路由: ${api.method} ${api.path}`, 'info');
+      
+      // 动态路由是直接通过路径访问的，不需要 /api/gateway 前缀
+      // 例如: /api/test/hello 而不是 /api/gateway/...
+      try {
+        const base = document.getElementById('api-base').value || '/api/gateway';
+        // 从 /api/gateway 提取基础路径
+        const basePath = base.replace('/gateway', '');
+        const dynamicUrl = basePath + api.path;
+        
+        log('execute-log', `请求 URL: ${dynamicUrl}`, 'info');
+        
+        const response = await fetch(dynamicUrl, {
+          method: api.method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+        
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { raw: text };
+        }
+        
+        if (response.ok) {
+          log('execute-log', `动态路由调用成功！状态码: ${response.status}`, 'success');
+          log('execute-log', `返回数据: ${JSON.stringify(data, null, 2)}`, 'info');
+          setStatus('test-api-status', `动态路由调用成功！状态码: ${response.status}`, 'success');
+        } else {
+          log('execute-log', `动态路由调用失败: HTTP ${response.status}`, 'error');
+          log('execute-log', `响应: ${text}`, 'error');
+          setStatus('test-api-status', `动态路由调用失败: HTTP ${response.status}`, 'error');
+        }
+      } catch (error) {
+        log('execute-log', `调用失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 删除选中的接口
+    async function deleteSelectedApi() {
+      if (!selectedApiId) {
+        alert('请先选择一个接口');
+        return;
+      }
+      
+      if (!confirm('确定要删除这个接口吗？')) {
+        return;
+      }
+      
+      clearLog('execute-log');
+      log('execute-log', `删除接口: ${selectedApiId}`, 'info');
+      
+      const result = await apiRequest(`/${selectedApiId}`, {
+        method: 'DELETE'
+      });
+      
+      if (result.success) {
+        log('execute-log', `删除成功！`, 'success');
+        setStatus('test-api-status', '接口已删除', 'success');
+        selectedApiId = null;
+        document.getElementById('selected-api-id').value = '';
+        document.getElementById('test-section').style.display = 'none';
+        await refreshApiList();
+      } else {
+        log('execute-log', `删除失败: ${result.error}`, 'error');
+      }
+    }
+
+    // 页面加载时执行环境检查
+    window.onload = function() {
+      checkEnvironment();
+    };
+
+    // 全局错误捕获
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error('全局错误:', message, 'at', source, lineno);
+      log('env-log', `全局错误: ${message} (${source}:${lineno})`, 'error');
+      return false;
+    };
+  </script>
+</body>
+</html>
