@@ -1,0 +1,40 @@
+[
+  {
+    "id": "req_1777248705579_e009192b",
+    "timestamp": 1777248705603,
+    "method": "GET",
+    "path": "/api/aggregation/v1/user-info",
+    "apiId": "api_1777248669069_sample_1",
+    "apiName": "用户信息聚合接口",
+    "status": "failed",
+    "statusCode": 500,
+    "duration": 24,
+    "error": "节点执行失败: 获取用户信息 - HTTP Error 404: Not Found",
+    "flowResult": {
+      "results": {},
+      "logs": [
+        {
+          "step": 1,
+          "nodeId": "node_user_001",
+          "nodeName": "获取用户信息",
+          "type": "http",
+          "status": "started",
+          "timestamp": 1777248705581
+        },
+        {
+          "step": 1,
+          "nodeId": "node_user_001",
+          "nodeName": "获取用户信息",
+          "type": "http",
+          "status": "error",
+          "error": "HTTP Error 404: Not Found",
+          "duration": 20,
+          "timestamp": 1777248705601
+        }
+      ],
+      "success": false,
+      "error": "节点执行失败: 获取用户信息 - HTTP Error 404: Not Found",
+      "failedAt": 1
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "totalRequests": 1,
+  "successRequests": 0,
+  "failedRequests": 1,
+  "totalResponseTime": 0,
+  "rateLimitHits": 0,
+  "circuitBreakerTrips": 0,
+  "startedAt": 1777248669027
+}
