@@ -43,7 +43,7 @@ let WarehouseService = class WarehouseService {
         if (city) {
             where.city = city;
         }
-        let items = this.sqliteStorageService.findAll('warehouses', {
+        let items = this.sqliteStorageService.findAll('warehouses', {}, {
             field: 'createdAt',
             desc: true
         });

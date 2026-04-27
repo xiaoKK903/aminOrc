@@ -372,5 +372,104 @@
     "costPrice": 0,
     "id": "ce426dfa-940d-4063-89a2-0629f5e0ad8c",
     "createdAt": "2026-04-27T03:15:55.262Z"
+  },
+  {
+    "orderId": "368642db-2b4f-4003-9df3-54e6005479ab",
+    "skuId": "b46a4c4c-cc43-4ad2-a15e-40afd6cbe04c",
+    "warehouseId": null,
+    "quantity": 15,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "ef4ec50f-a99d-41fa-a640-9552daa11029",
+    "createdAt": "2026-04-27T03:46:33.122Z"
+  },
+  {
+    "orderId": "368642db-2b4f-4003-9df3-54e6005479ab",
+    "skuId": "645fd03f-ba64-4edc-8b4b-841161b4779e",
+    "warehouseId": null,
+    "quantity": 45,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "853d4a73-c52d-401b-9e5c-9508b38cec77",
+    "createdAt": "2026-04-27T03:46:33.122Z"
+  },
+  {
+    "orderId": "368642db-2b4f-4003-9df3-54e6005479ab",
+    "skuId": "b548e99b-698d-4952-9b0b-864dde92401d",
+    "warehouseId": null,
+    "quantity": 1,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "539f21f0-de7c-4b0f-9c1c-8e111a16eeb1",
+    "createdAt": "2026-04-27T03:46:33.122Z"
+  },
+  {
+    "orderId": "17cf8f5e-25e1-4eb9-a581-04e7ce0e2fda",
+    "skuId": "11220207-09fa-42d9-a8e9-41c2e919e45c",
+    "warehouseId": "faa93fd4-06cb-4c19-8ad3-6b70ddf4ab26",
+    "quantity": 5,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 5,
+    "costPrice": 0,
+    "id": "d09b8c0c-66ed-4e61-98af-d74c6f2f9a7e",
+    "createdAt": "2026-04-27T03:46:33.151Z"
+  },
+  {
+    "orderId": "17cf8f5e-25e1-4eb9-a581-04e7ce0e2fda",
+    "skuId": "819e41cb-a3a4-4a60-b060-bf76e8490a25",
+    "warehouseId": "8de1c673-e3c4-4cbc-8c49-3a1a28a8f70a",
+    "quantity": 25,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 25,
+    "costPrice": 0,
+    "id": "33fced9a-b5dd-4433-abf8-d7cc9b37957f",
+    "createdAt": "2026-04-27T03:46:33.151Z"
+  },
+  {
+    "orderId": "0d87c132-065b-4540-909f-b5f0fb652e96",
+    "skuId": "11220207-09fa-42d9-a8e9-41c2e919e45c",
+    "warehouseId": null,
+    "quantity": 11,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "7da125b0-7ef8-4cf4-b5a2-ed5515ac37f6",
+    "createdAt": "2026-04-27T03:46:33.157Z"
+  },
+  {
+    "orderId": "0d87c132-065b-4540-909f-b5f0fb652e96",
+    "skuId": "645fd03f-ba64-4edc-8b4b-841161b4779e",
+    "warehouseId": null,
+    "quantity": 36,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "f51de411-1287-4ef0-80c8-c8408d1064c0",
+    "createdAt": "2026-04-27T03:46:33.157Z"
+  },
+  {
+    "orderId": "0d87c132-065b-4540-909f-b5f0fb652e96",
+    "skuId": "b46a4c4c-cc43-4ad2-a15e-40afd6cbe04c",
+    "warehouseId": null,
+    "quantity": 21,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "fa8389d4-2f41-44bb-81df-ec8541cfb47c",
+    "createdAt": "2026-04-27T03:46:33.157Z"
+  },
+  {
+    "orderId": "f7b13a95-c81d-4ca5-874a-d3be752a7b76",
+    "skuId": "bbaf6179-5067-491a-8d8d-c6192df16614",
+    "warehouseId": null,
+    "quantity": 1,
+    "lockedQuantity": 0,
+    "allocatedQuantity": 0,
+    "costPrice": 0,
+    "id": "01d054f5-f1a4-426d-9086-cf41d1df55f7",
+    "createdAt": "2026-04-27T03:53:37.839Z"
   }
 ]

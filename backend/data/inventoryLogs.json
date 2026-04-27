@@ -163,5 +163,35 @@
     "remark": "仿真订单发货扣减",
     "id": "abe1b47d-5b73-451c-b041-74faac5ceef7",
     "createdAt": "2026-04-27T03:15:55.230Z"
+  },
+  {
+    "warehouseId": "faa93fd4-06cb-4c19-8ad3-6b70ddf4ab26",
+    "skuId": "11220207-09fa-42d9-a8e9-41c2e919e45c",
+    "type": "deduct",
+    "quantity": 5,
+    "beforeQuantity": 607,
+    "afterQuantity": 602,
+    "beforeLocked": 0,
+    "afterLocked": 0,
+    "sourceType": "order_ship",
+    "sourceId": "17cf8f5e-25e1-4eb9-a581-04e7ce0e2fda",
+    "remark": "仿真订单发货扣减",
+    "id": "b25f0306-a32f-4b5b-9d2e-37f250eb9a47",
+    "createdAt": "2026-04-27T03:46:33.151Z"
+  },
+  {
+    "warehouseId": "8de1c673-e3c4-4cbc-8c49-3a1a28a8f70a",
+    "skuId": "819e41cb-a3a4-4a60-b060-bf76e8490a25",
+    "type": "deduct",
+    "quantity": 25,
+    "beforeQuantity": 288,
+    "afterQuantity": 263,
+    "beforeLocked": 0,
+    "afterLocked": 0,
+    "sourceType": "order_ship",
+    "sourceId": "17cf8f5e-25e1-4eb9-a581-04e7ce0e2fda",
+    "remark": "仿真订单发货扣减",
+    "id": "2cbccfdb-798c-481b-9f58-86550850a392",
+    "createdAt": "2026-04-27T03:46:33.151Z"
   }
 ]

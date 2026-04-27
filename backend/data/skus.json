@@ -13,5 +13,35 @@
     "id": "e6158af6-65cd-4510-9244-f05d8607e72e",
     "createdAt": "2026-04-27T03:15:34.065Z",
     "updatedAt": "2026-04-27T03:15:34.065Z"
+  },
+  {
+    "skuCode": "SKU-NOTEBOOK-002",
+    "name": "????????",
+    "category": "electronics",
+    "unit": "?",
+    "specification": "15? i7 16GB 512GB",
+    "minStock": 10,
+    "maxStock": 500,
+    "safetyStock": 20,
+    "status": "active",
+    "createdBy": "b5fcbbf7-75fe-4d60-82cd-ceb576c85ed3",
+    "id": "2e4ec4e8-10c3-4902-85bb-f8803cf3b221",
+    "createdAt": "2026-04-27T03:46:11.716Z",
+    "updatedAt": "2026-04-27T03:46:11.716Z"
+  },
+  {
+    "skuCode": "KU-NOTEBOOK-002",
+    "name": "222",
+    "category": "default",
+    "unit": "个",
+    "specification": "",
+    "minStock": 100,
+    "maxStock": 10000,
+    "safetyStock": 200,
+    "status": "active",
+    "createdBy": "ce9e32a9-09c3-4555-96c6-671ff94be14f",
+    "id": "bbaf6179-5067-491a-8d8d-c6192df16614",
+    "createdAt": "2026-04-27T03:52:56.635Z",
+    "updatedAt": "2026-04-27T03:52:56.635Z"
   }
 ]

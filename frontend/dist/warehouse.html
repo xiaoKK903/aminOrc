@@ -828,15 +828,30 @@
         const orderChart = ref(null);
 
         const API_BASE = '/api/warehouse';
+        const token = localStorage.getItem('token');
 
         async function apiRequest(url, options = {}) {
           try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+            if (options.headers) {
+              Object.assign(headers, options.headers);
+            }
+            
             const response = await fetch(API_BASE + url, {
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               credentials: 'include',
               ...options,
               body: options.body ? JSON.stringify(options.body) : undefined,
             });
+            
+            if (response.status === 401) {
+              alert('登录已过期，请重新登录');
+              window.location.href = '/index.html';
+              return;
+            }
             
             if (!response.ok) {
               const error = await response.json().catch(() => ({}));

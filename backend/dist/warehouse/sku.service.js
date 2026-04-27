@@ -41,7 +41,7 @@ let SkuService = class SkuService {
         if (status) {
             where.status = status;
         }
-        let items = this.sqliteStorageService.findAll('skus', {
+        let items = this.sqliteStorageService.findAll('skus', {}, {
             field: 'createdAt',
             desc: true
         });

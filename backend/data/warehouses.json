@@ -13,5 +13,50 @@
     "id": "34a7ad73-8a5e-4ec9-8e35-89ef428d8a93",
     "createdAt": "2026-04-27T03:15:20.697Z",
     "updatedAt": "2026-04-27T03:15:20.697Z"
+  },
+  {
+    "name": "????-1",
+    "code": "TEST-WH-001",
+    "address": "???????????123?",
+    "city": "??",
+    "province": "???",
+    "longitude": 121.4737,
+    "latitude": 31.2304,
+    "capacity": 100000,
+    "status": "active",
+    "createdBy": "b5fcbbf7-75fe-4d60-82cd-ceb576c85ed3",
+    "id": "5870e6bd-76f6-48fb-9d43-f26d9d29fc59",
+    "createdAt": "2026-04-27T03:43:30.859Z",
+    "updatedAt": "2026-04-27T03:43:30.859Z"
+  },
+  {
+    "name": "??????",
+    "code": "BJ-002",
+    "address": "?????????88?",
+    "city": "??",
+    "province": "???",
+    "longitude": 116.4074,
+    "latitude": 39.9042,
+    "capacity": 200000,
+    "status": "active",
+    "createdBy": "b5fcbbf7-75fe-4d60-82cd-ceb576c85ed3",
+    "id": "e6942166-b628-408d-9b6c-7d5d5a381c3a",
+    "createdAt": "2026-04-27T03:46:11.581Z",
+    "updatedAt": "2026-04-27T03:46:11.581Z"
+  },
+  {
+    "name": "笔记本",
+    "code": "1234",
+    "address": "",
+    "city": "",
+    "province": "",
+    "longitude": 0,
+    "latitude": 0,
+    "capacity": 100000,
+    "status": "active",
+    "createdBy": "ce9e32a9-09c3-4555-96c6-671ff94be14f",
+    "id": "5cd4ec2b-5724-47a7-9c3f-5795bc912783",
+    "createdAt": "2026-04-27T03:53:10.353Z",
+    "updatedAt": "2026-04-27T03:53:10.353Z"
   }
 ]
