@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataFactoryController = void 0;
 const common_1 = require("@nestjs/common");
+const data_factory_service_1 = require("./data-factory.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/permissions.guard");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
@@ -99,5 +100,5 @@ __decorate([
 exports.DataFactoryController = DataFactoryController = __decorate([
     (0, common_1.Controller)('warehouse/data-factory'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [data_factory_service_1.DataFactoryService])
 ], DataFactoryController);

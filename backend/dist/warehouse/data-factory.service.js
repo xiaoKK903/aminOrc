@@ -11,6 +11,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DataFactoryService = void 0;
 const common_1 = require("@nestjs/common");
+const sqlite_storage_service_1 = require("../common/sqlite-storage.service");
+const inventory_service_1 = require("./inventory.service");
 const uuid_1 = require("uuid");
 const WAREHOUSE_DATA = [
     { name: '华东仓储中心', code: 'WH-HD-01', city: '上海', province: '上海市', longitude: 121.4737, latitude: 31.2304, capacity: 500000 },
@@ -312,5 +314,5 @@ let DataFactoryService = class DataFactoryService {
 exports.DataFactoryService = DataFactoryService;
 exports.DataFactoryService = DataFactoryService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [Object, Object])
+    __metadata("design:paramtypes", [sqlite_storage_service_1.SqliteStorageService, inventory_service_1.InventoryService])
 ], DataFactoryService);

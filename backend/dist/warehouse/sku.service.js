@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SkuService = void 0;
 const common_1 = require("@nestjs/common");
+const sqlite_storage_service_1 = require("../common/sqlite-storage.service");
 const uuid_1 = require("uuid");
 let SkuService = class SkuService {
     sqliteStorageService;
@@ -255,5 +256,5 @@ let SkuService = class SkuService {
 exports.SkuService = SkuService;
 exports.SkuService = SkuService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [sqlite_storage_service_1.SqliteStorageService])
 ], SkuService);

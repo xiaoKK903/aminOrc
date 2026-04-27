@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ShipmentOrderController = void 0;
 const common_1 = require("@nestjs/common");
+const shipment_order_service_1 = require("./shipment-order.service");
 const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const permissions_guard_1 = require("../auth/permissions.guard");
 const permissions_decorator_1 = require("../auth/permissions.decorator");
@@ -145,5 +146,5 @@ __decorate([
 exports.ShipmentOrderController = ShipmentOrderController = __decorate([
     (0, common_1.Controller)('warehouse/shipment-orders'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, permissions_guard_1.PermissionsGuard),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [shipment_order_service_1.ShipmentOrderService])
 ], ShipmentOrderController);

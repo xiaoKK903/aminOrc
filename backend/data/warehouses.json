@@ -1,0 +1,17 @@
+[
+  {
+    "name": "????",
+    "code": "TEST-001",
+    "address": "????",
+    "city": "??",
+    "province": "???",
+    "longitude": 121.4737,
+    "latitude": 31.2304,
+    "capacity": 100000,
+    "status": "active",
+    "createdBy": "b5fcbbf7-75fe-4d60-82cd-ceb576c85ed3",
+    "id": "34a7ad73-8a5e-4ec9-8e35-89ef428d8a93",
+    "createdAt": "2026-04-27T03:15:20.697Z",
+    "updatedAt": "2026-04-27T03:15:20.697Z"
+  }
+]

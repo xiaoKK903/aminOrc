@@ -1,0 +1,17 @@
+[
+  {
+    "skuCode": "TEST-SKU-001",
+    "name": "????",
+    "category": "electronics",
+    "unit": "?",
+    "specification": "????",
+    "minStock": 10,
+    "maxStock": 1000,
+    "safetyStock": 50,
+    "status": "active",
+    "createdBy": "b5fcbbf7-75fe-4d60-82cd-ceb576c85ed3",
+    "id": "e6158af6-65cd-4510-9244-f05d8607e72e",
+    "createdAt": "2026-04-27T03:15:34.065Z",
+    "updatedAt": "2026-04-27T03:15:34.065Z"
+  }
+]
